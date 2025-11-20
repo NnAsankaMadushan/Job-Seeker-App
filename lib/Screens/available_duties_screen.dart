@@ -2,8 +2,135 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'messaging_screen.dart';
 
-class AvailableDutiesScreen extends StatelessWidget {
+// Sample job data
+class JobListing {
+  final String id;
+  final String title;
+  final String description;
+  final String location;
+  final String date;
+  final double budget;
+  final String providerName;
+
+  JobListing({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.location,
+    required this.date,
+    required this.budget,
+    required this.providerName,
+  });
+}
+
+final List<JobListing> sampleJobs = [
+  JobListing(
+    id: '1',
+    title: 'Home Cleaning Service',
+    description: 'Looking for an experienced cleaner for a 3-bedroom house. Deep cleaning required including kitchen and bathrooms.',
+    location: 'New York, NY',
+    date: 'Jan 15, 2025',
+    budget: 50,
+    providerName: 'Sarah Johnson',
+  ),
+  JobListing(
+    id: '2',
+    title: 'Garden Maintenance',
+    description: 'Need help with lawn mowing, trimming, and general garden upkeep. Tools provided.',
+    location: 'Brooklyn, NY',
+    date: 'Jan 16, 2025',
+    budget: 55,
+    providerName: 'Michael Chen',
+  ),
+  JobListing(
+    id: '3',
+    title: 'Painting Interior Walls',
+    description: 'Two rooms need repainting. Paint and supplies will be provided.',
+    location: 'Manhattan, NY',
+    date: 'Jan 17, 2025',
+    budget: 60,
+    providerName: 'Emma Davis',
+  ),
+  JobListing(
+    id: '4',
+    title: 'Moving Assistance',
+    description: 'Help needed to move furniture and boxes to a new apartment. Heavy lifting required.',
+    location: 'Queens, NY',
+    date: 'Jan 18, 2025',
+    budget: 65,
+    providerName: 'David Miller',
+  ),
+  JobListing(
+    id: '5',
+    title: 'Pet Sitting',
+    description: 'Need someone to watch my dog for the weekend. Experience with dogs required.',
+    location: 'Bronx, NY',
+    date: 'Jan 19, 2025',
+    budget: 45,
+    providerName: 'Lisa Anderson',
+  ),
+];
+
+class AvailableDutiesScreen extends StatefulWidget {
   const AvailableDutiesScreen({super.key});
+
+  @override
+  State<AvailableDutiesScreen> createState() => _AvailableDutiesScreenState();
+}
+
+class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
+  final Set<String> _appliedJobs = {};
+
+  void _showApplyDialog(JobListing job) {
+    final messageController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Apply for ${job.title}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Send a message to ${job.providerName}'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: messageController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText: 'Tell them why you\'re a great fit for this job...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _appliedJobs.add(job.id);
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Application submitted successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF9E72C3),
+            ),
+            child: const Text('Submit Application'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +153,11 @@ class AvailableDutiesScreen extends StatelessWidget {
         ),
         child: ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: 10,
+          itemCount: sampleJobs.length,
           itemBuilder: (context, index) {
+            final job = sampleJobs[index];
+            final hasApplied = _appliedJobs.contains(job.id);
+
             return Card(
               elevation: 5,
               margin: const EdgeInsets.only(bottom: 16),
@@ -62,11 +192,13 @@ class AvailableDutiesScreen extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Job #${1000 + index}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Text(
+                              job.title,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           Container(
@@ -75,12 +207,14 @@ class AvailableDutiesScreen extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF9E72C3),
+                              color: hasApplied
+                                  ? Colors.green
+                                  : const Color(0xFF9E72C3),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Text(
-                              'Available',
-                              style: TextStyle(
+                            child: Text(
+                              hasApplied ? 'Applied' : 'Available',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -95,12 +229,24 @@ class AvailableDutiesScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Title
-                          Text(
-                            'Home Cleaning Service',
-                            style: Theme.of(context).textTheme.titleLarge,
+                          // Provider name
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                color: Color(0xFF9E72C3),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Posted by ${job.providerName}',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           // Location
                           Row(
                             children: [
@@ -111,7 +257,7 @@ class AvailableDutiesScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'New York, NY',
+                                job.location,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ],
@@ -127,7 +273,7 @@ class AvailableDutiesScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Jan ${15 + index}, 2025',
+                                job.date,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ],
@@ -143,7 +289,7 @@ class AvailableDutiesScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '\$${50 + (index * 5)}/hr',
+                                '\$${job.budget}/hr',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
@@ -156,7 +302,7 @@ class AvailableDutiesScreen extends StatelessWidget {
                           const SizedBox(height: 16),
                           // Description
                           Text(
-                            'Looking for an experienced cleaner for a 3-bedroom house. Deep cleaning required including kitchen and bathrooms.',
+                            job.description,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 16),
@@ -165,18 +311,11 @@ class AvailableDutiesScreen extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => MessagingScreen(
-                                          userId: 1000 + index,
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                  onPressed: hasApplied ? null : () => _showApplyDialog(job),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF9E72C3),
+                                    backgroundColor: hasApplied
+                                        ? Colors.grey
+                                        : const Color(0xFF9E72C3),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 12),
@@ -184,13 +323,24 @@ class AvailableDutiesScreen extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),
-                                  icon: const Icon(Icons.chat_outlined),
-                                  label: const Text('Chat with Client'),
+                                  icon: Icon(hasApplied
+                                      ? Icons.check_circle
+                                      : Icons.send_outlined),
+                                  label: Text(hasApplied ? 'Applied' : 'Apply Now'),
                                 ),
                               ),
                               const SizedBox(width: 12),
                               IconButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => MessagingScreen(
+                                        userId: int.parse(job.id),
+                                      ),
+                                    ),
+                                  );
+                                },
                                 style: IconButton.styleFrom(
                                   backgroundColor: Colors.grey.shade200,
                                   shape: RoundedRectangleBorder(
@@ -198,7 +348,7 @@ class AvailableDutiesScreen extends StatelessWidget {
                                   ),
                                 ),
                                 icon: const Icon(
-                                  Icons.bookmark_border_outlined,
+                                  Icons.chat_outlined,
                                   color: Color(0xFF9E72C3),
                                 ),
                               ),

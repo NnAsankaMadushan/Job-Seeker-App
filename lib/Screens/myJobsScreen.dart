@@ -1,5 +1,5 @@
-import 'package:chatting_app/Screens/home_page.dart';
-import 'package:chatting_app/Screens/messaging_screen.dart';
+import 'package:job_seeker_app/Screens/home_page.dart';
+import 'package:job_seeker_app/Screens/messaging_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 

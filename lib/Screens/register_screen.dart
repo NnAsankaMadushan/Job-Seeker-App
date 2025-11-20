@@ -1,11 +1,11 @@
-import 'package:chatting_app/Screens/Login_screen.dart';
+import 'package:job_seeker_app/Screens/Login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import '../widgets/social_button.dart';
-import 'home_screen.dart';
+import 'home_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -19,11 +19,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String? _selectedGender;
+  String? _selectedUserType;
   DateTime? _selectedDate;
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
-  
+
   final List<String> _genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
+  final List<String> _userTypeOptions = ['Job Seeker', 'Job Provider'];
 
   Future<void> _pickImage() async {
     try {
@@ -279,6 +281,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         return null;
                       },
                     ).animate().fadeIn(delay: 700.ms).slideX(),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'User Type',
+                        prefixIcon: Icon(Icons.work_outline),
+                      ),
+                      value: _selectedUserType,
+                      hint: const Text('Select User Type'),
+                      items: _userTypeOptions.map((String type) {
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Text(type),
+                        );
+                      }).toList(),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select user type';
+                        }
+                        return null;
+                      },
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedUserType = newValue;
+                        });
+                      },
+                    ).animate().fadeIn(delay: 800.ms).slideX(),
                     const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
@@ -309,7 +337,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const HomePage()),
           (route) => false,
         );
       });

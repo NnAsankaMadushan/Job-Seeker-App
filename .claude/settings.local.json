@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub get:*)",
+      "Bash(taskkill:*)",
+      "Bash(gradlew --stop:*)",
+      "Bash(flutter clean:*)",
+      "Bash(nul)",
+      "Bash(./gradlew:*)",
+      "Bash(if exist \"android\\.gradle\\noVersion\\buildLogic.lock\" del /F \"android\\.gradle\\noVersion\\buildLogic.lock\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

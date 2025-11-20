@@ -1,7 +1,7 @@
-import 'package:chatting_app/Screens/home_screen.dart';
-import 'package:chatting_app/Screens/myJobsScreen.dart';
-import 'package:chatting_app/Screens/notification.dart';
-import 'package:chatting_app/Screens/work_request_screen.dart';
+import 'package:job_seeker_app/Screens/home_screen.dart';
+import 'package:job_seeker_app/Screens/myJobsScreen.dart';
+import 'package:job_seeker_app/Screens/notification.dart';
+import 'package:job_seeker_app/Screens/work_request_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'profile_screen.dart';
