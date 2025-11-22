@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../widgets/social_button.dart';
 import 'register_screen.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:job_seeker_app/services/firebase_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -162,31 +161,33 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      final response = await http.post(
-        Uri.parse("http://192.168.134.204:5000/api/auth/login"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "username": _usernameController.text,
-          "password": _passwordController.text,
-        }),
+      // Use Firebase Authentication
+      final authService = FirebaseAuthService();
+      final result = await authService.login(
+        email: _usernameController.text.trim(),
+        password: _passwordController.text,
       );
 
       setState(() => _isLoading = false);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        print("Login Successful! Token: ${data['token']}");
+      if (result['success']) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Login successful!')),
+          );
 
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-          (route) => false,
-        );
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const HomePage()),
+            (route) => false,
+          );
+        }
       } else {
-        print("Login Failed: ${jsonDecode(response.body)['msg']}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login failed: ${jsonDecode(response.body)['msg']}")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Login failed: ${result['message']}')),
+          );
+        }
       }
     }
   }

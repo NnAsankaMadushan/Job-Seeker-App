@@ -33,15 +33,45 @@ class Job {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       location: json['location'] ?? '',
-      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
+      date: _parseDate(json['date']),
       time: json['time'] ?? '',
       budget: (json['budget'] ?? 0).toDouble(),
       providerId: json['providerId'] ?? '',
       providerName: json['providerName'] ?? '',
       status: json['status'] ?? 'available',
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      createdAt: _parseDate(json['createdAt']),
       assignedTo: json['assignedTo'],
     );
+  }
+
+  static DateTime _parseDate(dynamic dateValue) {
+    if (dateValue == null) {
+      return DateTime.now();
+    }
+    // Handle Firestore Timestamp
+    if (dateValue is Map && dateValue.containsKey('_seconds')) {
+      return DateTime.fromMillisecondsSinceEpoch(
+        dateValue['_seconds'] * 1000 + (dateValue['_nanoseconds'] ?? 0) ~/ 1000000,
+      );
+    }
+    // Handle Timestamp object with toDate method
+    if (dateValue.toString().contains('Timestamp')) {
+      try {
+        // Try to call toDate() method if it exists
+        return (dateValue as dynamic).toDate();
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
+    // Handle String
+    if (dateValue is String) {
+      return DateTime.parse(dateValue);
+    }
+    // Handle DateTime
+    if (dateValue is DateTime) {
+      return dateValue;
+    }
+    return DateTime.now();
   }
 
   Map<String, dynamic> toJson() {

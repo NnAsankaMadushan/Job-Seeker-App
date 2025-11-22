@@ -4,8 +4,8 @@ import 'package:cloudinary_public/cloudinary_public.dart';
 class CloudinaryService {
   // Cloudinary configuration
   // TODO: Replace these with your actual Cloudinary credentials
-  static const String _cloudName = 'YOUR_CLOUD_NAME';
-  static const String _uploadPreset = 'YOUR_UPLOAD_PRESET';
+  static const String _cloudName = 'dipwmpx3k';
+  static const String _uploadPreset = 'job_seeker_uploads';
 
   late final CloudinaryPublic _cloudinary;
 
@@ -44,9 +44,22 @@ class CloudinaryService {
         'publicId': response.publicId, // Save this for deletion if needed
       };
     } catch (e) {
+      String errorMessage = 'Failed to upload image';
+
+      // Provide more helpful error messages
+      if (e.toString().contains('400')) {
+        errorMessage = 'Upload preset not configured. Please create an unsigned upload preset named "$_uploadPreset" in your Cloudinary account settings.';
+      } else if (e.toString().contains('401')) {
+        errorMessage = 'Invalid Cloudinary credentials. Please check your cloud name.';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else {
+        errorMessage = 'Failed to upload image: ${e.toString()}';
+      }
+
       return {
         'success': false,
-        'message': 'Failed to upload image: ${e.toString()}',
+        'message': errorMessage,
         'data': null,
       };
     }

@@ -31,10 +31,37 @@ class JobApplication {
       applicantImage: json['applicantImage'],
       message: json['message'] ?? '',
       status: json['status'] ?? 'pending',
-      appliedAt: json['appliedAt'] != null
-          ? DateTime.parse(json['appliedAt'])
-          : DateTime.now(),
+      appliedAt: _parseDate(json['appliedAt']),
     );
+  }
+
+  static DateTime _parseDate(dynamic dateValue) {
+    if (dateValue == null) {
+      return DateTime.now();
+    }
+    // Handle Firestore Timestamp
+    if (dateValue is Map && dateValue.containsKey('_seconds')) {
+      return DateTime.fromMillisecondsSinceEpoch(
+        dateValue['_seconds'] * 1000 + (dateValue['_nanoseconds'] ?? 0) ~/ 1000000,
+      );
+    }
+    // Handle Timestamp object with toDate method
+    if (dateValue.toString().contains('Timestamp')) {
+      try {
+        return (dateValue as dynamic).toDate();
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
+    // Handle String
+    if (dateValue is String) {
+      return DateTime.parse(dateValue);
+    }
+    // Handle DateTime
+    if (dateValue is DateTime) {
+      return dateValue;
+    }
+    return DateTime.now();
   }
 
   Map<String, dynamic> toJson() {

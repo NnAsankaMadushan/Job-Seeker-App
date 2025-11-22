@@ -3,7 +3,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:job_seeker_app/services/cloudinary_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 
@@ -21,6 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _selectedGender;
   DateTime? _selectedDate;
   File? _imageFile;
+  String? _currentProfileImageUrl;
   final ImagePicker _picker = ImagePicker();
   
   // Controllers for form fields
@@ -35,14 +35,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize controllers with mock data (replace with actual user data)
-    _nameController.text = "Asanka Madushan";
-    _emailController.text = "nnamadushan@gmail.com";
-    _phoneController.text = "+94 71 7775 812";
-    _addressController.text = "45, Silver Crest, Kekanadura";
-    _locationController.text = "Matara";
-    _selectedGender = "Male";
-    _selectedDate = DateTime(1998, 4, 16);
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final authService = FirebaseAuthService();
+    final user = await authService.getCurrentUserData();
+
+    if (user != null && mounted) {
+      setState(() {
+        _nameController.text = user.name;
+        _emailController.text = user.email;
+        _phoneController.text = user.phone;
+        _addressController.text = user.address ?? '';
+        _locationController.text = user.location ?? '';
+        _currentProfileImageUrl = user.profileImage;
+        // Note: gender and date of birth would need to be added to User model
+      });
+    }
   }
 
   @override
@@ -57,36 +67,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickImage() async {
     if (!_isEditing) return;
-    
+
     try {
-      final status = await Permission.storage.request();
-      final cameraStatus = await Permission.camera.request();
-      
-      if (status.isGranted && cameraStatus.isGranted) {
-        final XFile? pickedFile = await _picker.pickImage(
-          source: ImageSource.gallery,
-          imageQuality: 75,
-          maxWidth: 1024,
-          maxHeight: 1024,
-        );
-        
-        if (pickedFile != null) {
-          final croppedFile = await _cropImage(pickedFile.path);
-          if (croppedFile != null) {
-            setState(() {
-              _imageFile = File(croppedFile.path);
-            });
-          }
+      // Try to pick image directly - permissions will be handled by the plugin
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 75,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
+
+      if (pickedFile != null) {
+        final croppedFile = await _cropImage(pickedFile.path);
+        if (croppedFile != null) {
+          setState(() {
+            _imageFile = File(croppedFile.path);
+          });
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please grant the required permissions')),
-        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e')),
+        );
+      }
     }
   }
 
@@ -185,8 +189,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           backgroundColor: const Color(0xFF9E72C3),
                           backgroundImage: _imageFile != null
                               ? FileImage(_imageFile!)
-                              : null,
-                          child: _imageFile == null
+                              : _currentProfileImageUrl != null
+                                  ? NetworkImage(_currentProfileImageUrl!)
+                                  : null,
+                          child: _imageFile == null && _currentProfileImageUrl == null
                               ? const Icon(Icons.person, size: 50, color: Colors.white)
                               : null,
                         ),

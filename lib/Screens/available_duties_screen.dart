@@ -1,75 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:job_seeker_app/services/firebase_job_service.dart';
+import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/models/job.dart';
 import 'messaging_screen.dart';
-
-// Sample job data
-class JobListing {
-  final String id;
-  final String title;
-  final String description;
-  final String location;
-  final String date;
-  final double budget;
-  final String providerName;
-
-  JobListing({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.location,
-    required this.date,
-    required this.budget,
-    required this.providerName,
-  });
-}
-
-final List<JobListing> sampleJobs = [
-  JobListing(
-    id: '1',
-    title: 'Home Cleaning Service',
-    description: 'Looking for an experienced cleaner for a 3-bedroom house. Deep cleaning required including kitchen and bathrooms.',
-    location: 'New York, NY',
-    date: 'Jan 15, 2025',
-    budget: 50,
-    providerName: 'Sarah Johnson',
-  ),
-  JobListing(
-    id: '2',
-    title: 'Garden Maintenance',
-    description: 'Need help with lawn mowing, trimming, and general garden upkeep. Tools provided.',
-    location: 'Brooklyn, NY',
-    date: 'Jan 16, 2025',
-    budget: 55,
-    providerName: 'Michael Chen',
-  ),
-  JobListing(
-    id: '3',
-    title: 'Painting Interior Walls',
-    description: 'Two rooms need repainting. Paint and supplies will be provided.',
-    location: 'Manhattan, NY',
-    date: 'Jan 17, 2025',
-    budget: 60,
-    providerName: 'Emma Davis',
-  ),
-  JobListing(
-    id: '4',
-    title: 'Moving Assistance',
-    description: 'Help needed to move furniture and boxes to a new apartment. Heavy lifting required.',
-    location: 'Queens, NY',
-    date: 'Jan 18, 2025',
-    budget: 65,
-    providerName: 'David Miller',
-  ),
-  JobListing(
-    id: '5',
-    title: 'Pet Sitting',
-    description: 'Need someone to watch my dog for the weekend. Experience with dogs required.',
-    location: 'Bronx, NY',
-    date: 'Jan 19, 2025',
-    budget: 45,
-    providerName: 'Lisa Anderson',
-  ),
-];
 
 class AvailableDutiesScreen extends StatefulWidget {
   const AvailableDutiesScreen({super.key});
@@ -79,9 +13,41 @@ class AvailableDutiesScreen extends StatefulWidget {
 }
 
 class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
+  final FirebaseJobService _jobService = FirebaseJobService();
+  final FirebaseAuthService _authService = FirebaseAuthService();
   final Set<String> _appliedJobs = {};
+  String? _currentUserId;
 
-  void _showApplyDialog(JobListing job) {
+  @override
+  void initState() {
+    super.initState();
+    _loadAppliedJobs();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = await _authService.getCurrentUserData();
+    if (mounted) {
+      setState(() {
+        _currentUserId = user?.id;
+      });
+    }
+  }
+
+  Future<void> _loadAppliedJobs() async {
+    try {
+      final appliedJobIds = await _jobService.getAppliedJobIds();
+      if (mounted) {
+        setState(() {
+          _appliedJobs.addAll(appliedJobIds);
+        });
+      }
+    } catch (e) {
+      // Silently fail
+    }
+  }
+
+  void _showApplyDialog(Job job) {
     final messageController = TextEditingController();
 
     showDialog(
@@ -110,17 +76,39 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _appliedJobs.add(job.id);
-              });
+            onPressed: () async {
+              final message = messageController.text.trim();
+              if (message.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter a message')),
+                );
+                return;
+              }
+
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Application submitted successfully!'),
-                  backgroundColor: Colors.green,
-                ),
+
+              final result = await _jobService.applyForJob(
+                jobId: job.id,
+                message: message,
               );
+
+              if (mounted) {
+                if (result['success']) {
+                  setState(() {
+                    _appliedJobs.add(job.id);
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Application submitted successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result['message'] ?? 'Failed to apply')),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF9E72C3),
@@ -151,14 +139,61 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
             ],
           ),
         ),
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: sampleJobs.length,
-          itemBuilder: (context, index) {
-            final job = sampleJobs[index];
-            final hasApplied = _appliedJobs.contains(job.id);
+        child: StreamBuilder<List<Job>>(
+          stream: _jobService.getAvailableJobs(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-            return Card(
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('Error: ${snapshot.error}'),
+              );
+            }
+
+            final jobs = snapshot.data ?? [];
+
+            if (jobs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.work_off_outlined,
+                      size: 64,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No available jobs',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Check back later for new opportunities',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: jobs.length,
+              itemBuilder: (context, index) {
+                final job = jobs[index];
+                final hasApplied = _appliedJobs.contains(job.id);
+                final isOwnJob = _currentUserId == job.providerId;
+
+                return Card(
               elevation: 5,
               margin: const EdgeInsets.only(bottom: 16),
               shape: RoundedRectangleBorder(
@@ -207,13 +242,17 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: hasApplied
-                                  ? Colors.green
-                                  : const Color(0xFF9E72C3),
+                              color: isOwnJob
+                                  ? Colors.orange
+                                  : (hasApplied
+                                      ? Colors.green
+                                      : const Color(0xFF9E72C3)),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              hasApplied ? 'Applied' : 'Available',
+                              isOwnJob
+                                  ? 'Your Post'
+                                  : (hasApplied ? 'Applied' : 'Available'),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w500,
@@ -273,7 +312,7 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                job.date,
+                                '${job.date.day}/${job.date.month}/${job.date.year}',
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ],
@@ -289,7 +328,7 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '\$${job.budget}/hr',
+                                '\$${job.budget.toStringAsFixed(2)}/hr',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
@@ -311,11 +350,15 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                             children: [
                               Expanded(
                                 child: ElevatedButton.icon(
-                                  onPressed: hasApplied ? null : () => _showApplyDialog(job),
+                                  onPressed: (hasApplied || isOwnJob)
+                                      ? null
+                                      : () => _showApplyDialog(job),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: hasApplied
-                                        ? Colors.grey
-                                        : const Color(0xFF9E72C3),
+                                    backgroundColor: isOwnJob
+                                        ? Colors.orange
+                                        : (hasApplied
+                                            ? Colors.grey
+                                            : const Color(0xFF9E72C3)),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 12),
@@ -323,10 +366,14 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),
-                                  icon: Icon(hasApplied
-                                      ? Icons.check_circle
-                                      : Icons.send_outlined),
-                                  label: Text(hasApplied ? 'Applied' : 'Apply Now'),
+                                  icon: Icon(isOwnJob
+                                      ? Icons.work
+                                      : (hasApplied
+                                          ? Icons.check_circle
+                                          : Icons.send_outlined)),
+                                  label: Text(isOwnJob
+                                      ? 'Your Post'
+                                      : (hasApplied ? 'Applied' : 'Apply Now')),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -336,7 +383,8 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => MessagingScreen(
-                                        userId: int.parse(job.id),
+                                        userId: job.providerId,
+                                        userName: job.providerName,
                                       ),
                                     ),
                                   );
@@ -360,7 +408,9 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                   ],
                 ),
               ),
-            ).animate().fadeIn(delay: (50 * index).ms).slideX();
+                ).animate().fadeIn(delay: (50 * index).ms).slideX();
+              },
+            );
           },
         ),
       ),

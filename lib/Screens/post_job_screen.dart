@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:job_seeker_app/services/firebase_job_service.dart';
 
 class PostJobScreen extends StatefulWidget {
   const PostJobScreen({super.key});
@@ -10,9 +11,11 @@ class PostJobScreen extends StatefulWidget {
 
 class _PostJobScreenState extends State<PostJobScreen> {
   final _formKey = GlobalKey<FormState>();
+  final FirebaseJobService _jobService = FirebaseJobService();
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
-  
+  bool _isPosting = false;
+
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
@@ -217,14 +220,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
                           child: SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  // Handle job posting
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Job posted successfully!')),
-                                  );
-                                }
-                              },
+                              onPressed: _isPosting ? null : _handlePostJob,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF9E72C3),
                                 foregroundColor: Colors.white,
@@ -233,13 +229,22 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                              child: const Text(
-                                'Post Job',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              child: _isPosting
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Post Job',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                           ),
                         ).animate().fadeIn().slideY(delay: const Duration(milliseconds: 200)),
@@ -253,5 +258,63 @@ class _PostJobScreenState extends State<PostJobScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handlePostJob() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a date')),
+      );
+      return;
+    }
+
+    if (_selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a time')),
+      );
+      return;
+    }
+
+    setState(() => _isPosting = true);
+
+    try {
+      final time = '${_selectedTime!.hour}:${_selectedTime!.minute.toString().padLeft(2, '0')}';
+      final budget = double.tryParse(_budgetController.text) ?? 0.0;
+
+      final result = await _jobService.postJob(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        location: _locationController.text.trim(),
+        date: _selectedDate!,
+        time: time,
+        budget: budget,
+      );
+
+      setState(() => _isPosting = false);
+
+      if (mounted) {
+        if (result['success']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Job posted successfully!')),
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Failed to post job')),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isPosting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 }

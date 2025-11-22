@@ -11,7 +11,14 @@ import 'package:job_seeker_app/services/cloudinary_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final String email;
+  final String password;
+
+  const RegisterScreen({
+    super.key,
+    required this.email,
+    required this.password,
+  });
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -33,16 +40,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _addressController = TextEditingController();
   final _locationController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-fill email from previous screen
+    _emailController.text = widget.email;
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _passwordController.dispose();
     _addressController.dispose();
     _locationController.dispose();
     super.dispose();
@@ -216,24 +228,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ).animate().fadeIn(delay: 200.ms).slideX(),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _passwordController,
-                      decoration: const InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: Icon(Icons.lock_outline),
-                      ),
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a password';
-                        }
-                        if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 250.ms).slideX(),
-                    const SizedBox(height: 16),
-                    TextFormField(
                       controller: _phoneController,
                       decoration: const InputDecoration(
                         labelText: 'Phone Number',
@@ -401,7 +395,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final authService = FirebaseAuthService();
         final result = await authService.register(
           email: _emailController.text.trim(),
-          password: _passwordController.text,
+          password: widget.password,
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
           userType: _selectedUserType!,

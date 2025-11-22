@@ -24,11 +24,38 @@ class Message {
       senderName: json['senderName'] ?? '',
       receiverId: json['receiverId'] ?? '',
       content: json['content'] ?? '',
-      timestamp: json['timestamp'] != null
-          ? DateTime.parse(json['timestamp'])
-          : DateTime.now(),
+      timestamp: _parseDate(json['timestamp']),
       isRead: json['isRead'] ?? false,
     );
+  }
+
+  static DateTime _parseDate(dynamic dateValue) {
+    if (dateValue == null) {
+      return DateTime.now();
+    }
+    // Handle Firestore Timestamp
+    if (dateValue is Map && dateValue.containsKey('_seconds')) {
+      return DateTime.fromMillisecondsSinceEpoch(
+        dateValue['_seconds'] * 1000 + (dateValue['_nanoseconds'] ?? 0) ~/ 1000000,
+      );
+    }
+    // Handle Timestamp object with toDate method
+    if (dateValue.toString().contains('Timestamp')) {
+      try {
+        return (dateValue as dynamic).toDate();
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
+    // Handle String
+    if (dateValue is String) {
+      return DateTime.parse(dateValue);
+    }
+    // Handle DateTime
+    if (dateValue is DateTime) {
+      return dateValue;
+    }
+    return DateTime.now();
   }
 
   Map<String, dynamic> toJson() {

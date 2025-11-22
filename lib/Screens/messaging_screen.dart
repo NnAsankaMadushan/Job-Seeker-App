@@ -5,7 +5,7 @@ import 'package:job_seeker_app/services/firebase_chat_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 
 class MessagingScreen extends StatefulWidget {
-  final int userId;
+  final String userId;
   final String? userName;
 
   const MessagingScreen({
@@ -18,7 +18,7 @@ class MessagingScreen extends StatefulWidget {
   State<MessagingScreen> createState() => _MessagingScreenState();
 }
 
-class _MessagingScreenState extends State<MessagingScreen> {
+class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingObserver {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   List<Message> _messages = [];
@@ -28,11 +28,22 @@ class _MessagingScreenState extends State<MessagingScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadMessages();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Mark messages as read when app comes to foreground
+    if (state == AppLifecycleState.resumed) {
+      FirebaseChatService().markAsRead(widget.userId);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -42,23 +53,32 @@ class _MessagingScreenState extends State<MessagingScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final messages = await FirebaseChatService().getMessages(widget.userId.toString()).first;
-      setState(() {
-        _messages = messages; // Already in correct order
-        _isLoading = false;
+      // Listen to messages stream
+      FirebaseChatService().getMessages(widget.userId).listen((messages) {
+        if (mounted) {
+          setState(() {
+            _messages = messages;
+            _isLoading = false;
+          });
+
+          // Mark messages as read whenever messages update
+          FirebaseChatService().markAsRead(widget.userId);
+
+          // Auto-scroll to bottom when new messages arrive
+          Future.delayed(const Duration(milliseconds: 100), () {
+            if (_scrollController.hasClients) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            }
+          });
+        }
       });
 
-      // Mark messages as read
-      await FirebaseChatService().markAsRead(widget.userId.toString());
-
-      // Scroll to bottom
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
+      // Mark messages as read immediately when screen opens
+      await FirebaseChatService().markAsRead(widget.userId);
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -79,7 +99,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
 
     try {
       final result = await FirebaseChatService().sendMessage(
-        receiverId: widget.userId.toString(),
+        receiverId: widget.userId,
         content: messageText,
       );
 

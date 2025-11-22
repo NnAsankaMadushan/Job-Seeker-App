@@ -133,6 +133,7 @@ class FirebaseChatService {
         'lastMessageSenderId': user.uid,
         'lastMessageTime': FieldValue.serverTimestamp(),
         'unreadCount_${receiverId}': FieldValue.increment(1),
+        'unreadCount_${user.uid}': 0, // Reset sender's unread count
       }, SetOptions(merge: true));
 
       return {
@@ -175,10 +176,10 @@ class FirebaseChatService {
         await doc.reference.update({'isRead': true});
       }
 
-      // Reset unread count
-      await _firestore.collection('conversations').doc(conversationId).update({
+      // Reset unread count - use set with merge to avoid errors if document doesn't exist
+      await _firestore.collection('conversations').doc(conversationId).set({
         'unreadCount_$userId': 0,
-      });
+      }, SetOptions(merge: true));
     } catch (e) {
       // Ignore errors
     }

@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:job_seeker_app/models/job.dart';
 import 'package:job_seeker_app/models/job_application.dart';
+import 'package:job_seeker_app/services/firebase_notification_service.dart';
 
 class FirebaseJobService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseNotificationService _notificationService = FirebaseNotificationService();
 
   // Get available jobs
   Stream<List<Job>> getAvailableJobs() {
@@ -54,7 +56,7 @@ class FirebaseJobService {
 
     // Get all applications by this user
     final applicationsSnapshot = await _firestore
-        .collection('applications')
+        .collection('job_applications')
         .where('applicantId', isEqualTo: userId)
         .get();
 
@@ -78,6 +80,25 @@ class FirebaseJobService {
         });
       }).toList();
     });
+  }
+
+  // Get IDs of jobs that current user has applied to
+  Future<List<String>> getAppliedJobIds() async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return [];
+
+    try {
+      final applicationsSnapshot = await _firestore
+          .collection('job_applications')
+          .where('applicantId', isEqualTo: userId)
+          .get();
+
+      return applicationsSnapshot.docs
+          .map((doc) => doc.data()['jobId'] as String)
+          .toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   // Post a new job
@@ -146,7 +167,7 @@ class FirebaseJobService {
 
       // Check if already applied
       final existing = await _firestore
-          .collection('applications')
+          .collection('job_applications')
           .where('jobId', isEqualTo: jobId)
           .where('applicantId', isEqualTo: user.uid)
           .get();
@@ -169,18 +190,42 @@ class FirebaseJobService {
         };
       }
 
+      final providerId = jobDoc.data()?['providerId'] ?? '';
+
+      // Prevent users from applying to their own jobs
+      if (providerId == user.uid) {
+        return {
+          'success': false,
+          'message': 'You cannot apply to your own job post',
+        };
+      }
+      final jobTitle = jobDoc.data()?['title'] ?? '';
+      final applicantName = userDoc.data()?['name'] ?? user.displayName ?? 'Unknown';
+
       final applicationData = {
         'jobId': jobId,
-        'jobTitle': jobDoc.data()?['title'] ?? '',
+        'jobTitle': jobTitle,
+        'providerId': providerId,
         'applicantId': user.uid,
-        'applicantName': userDoc.data()?['name'] ?? user.displayName ?? 'Unknown',
+        'applicantName': applicantName,
         'applicantImage': userDoc.data()?['profileImage'],
         'message': message,
         'status': 'pending',
         'appliedAt': FieldValue.serverTimestamp(),
       };
 
-      await _firestore.collection('applications').add(applicationData);
+      await _firestore.collection('job_applications').add(applicationData);
+
+      // Send notification to job provider
+      if (providerId.isNotEmpty) {
+        await _notificationService.createNotification(
+          userId: providerId,
+          type: 'application',
+          title: 'New Job Application',
+          message: '$applicantName applied for "$jobTitle"',
+          data: {'jobId': jobId, 'applicantId': user.uid},
+        );
+      }
 
       return {
         'success': true,
@@ -197,8 +242,28 @@ class FirebaseJobService {
   // Get applications for a job
   Stream<List<JobApplication>> getJobApplications(String jobId) {
     return _firestore
-        .collection('applications')
+        .collection('job_applications')
         .where('jobId', isEqualTo: jobId)
+        .orderBy('appliedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return JobApplication.fromJson({
+          'id': doc.id,
+          ...doc.data(),
+        });
+      }).toList();
+    });
+  }
+
+  // Get all applications for jobs posted by current user
+  Stream<List<JobApplication>> getAllMyJobApplications() {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return Stream.value([]);
+
+    return _firestore
+        .collection('job_applications')
+        .where('providerId', isEqualTo: userId)
         .orderBy('appliedAt', descending: true)
         .snapshots()
         .map((snapshot) {
@@ -217,23 +282,36 @@ class FirebaseJobService {
     required String status,
   }) async {
     try {
-      await _firestore.collection('applications').doc(applicationId).update({
+      await _firestore.collection('job_applications').doc(applicationId).update({
         'status': status,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      // If accepted, update job status
-      if (status == 'accepted') {
-        final appDoc = await _firestore.collection('applications').doc(applicationId).get();
-        final jobId = appDoc.data()?['jobId'];
-        final applicantId = appDoc.data()?['applicantId'];
+      // Get application details for notification
+      final appDoc = await _firestore.collection('job_applications').doc(applicationId).get();
+      final jobId = appDoc.data()?['jobId'];
+      final applicantId = appDoc.data()?['applicantId'];
+      final jobTitle = appDoc.data()?['jobTitle'];
 
-        if (jobId != null && applicantId != null) {
-          await _firestore.collection('jobs').doc(jobId).update({
-            'status': 'in_progress',
-            'assignedTo': applicantId,
-          });
-        }
+      if (applicantId != null && jobTitle != null) {
+        // Send notification to applicant
+        await _notificationService.createNotification(
+          userId: applicantId,
+          type: 'application',
+          title: status == 'accepted' ? 'Application Accepted!' : 'Application Status Updated',
+          message: status == 'accepted'
+              ? 'Your application for "$jobTitle" has been accepted!'
+              : 'Your application for "$jobTitle" has been rejected.',
+          data: {'jobId': jobId, 'applicationId': applicationId},
+        );
+      }
+
+      // If accepted, update job status
+      if (status == 'accepted' && jobId != null && applicantId != null) {
+        await _firestore.collection('jobs').doc(jobId).update({
+          'status': 'in_progress',
+          'assignedTo': applicantId,
+        });
       }
 
       return {

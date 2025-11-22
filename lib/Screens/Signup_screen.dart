@@ -237,10 +237,15 @@ class _SignupScreenState extends State<SignupScreen> {
       // Simulate API call delay
       Future.delayed(const Duration(seconds: 2), () {
         setState(() => _isLoading = false);
-        // Navigate to RegisterScreen
+        // Navigate to RegisterScreen with email and password
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const RegisterScreen()),
+          MaterialPageRoute(
+            builder: (_) => RegisterScreen(
+              email: _emailController.text,
+              password: _passwordController.text,
+            ),
+          ),
         );
       });
     }
