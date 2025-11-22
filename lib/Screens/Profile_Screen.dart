@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:job_seeker_app/services/cloudinary_service.dart';
+import 'package:job_seeker_app/services/firebase_auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -323,19 +325,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _handleSave() async {
     setState(() => _isLoading = true);
-    
-    // Simulate saving profile
-    await Future.delayed(const Duration(seconds: 1));
-    
-    setState(() {
-      _isLoading = false;
-      _isEditing = false;
-    });
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully')),
+
+    try {
+      String? imageUrl;
+
+      // Upload image to Cloudinary if a new image was selected
+      if (_imageFile != null) {
+        final cloudinaryService = CloudinaryService();
+        final uploadResult = await cloudinaryService.uploadProfileImage(_imageFile!);
+
+        if (uploadResult['success']) {
+          imageUrl = uploadResult['data'];
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to upload image: ${uploadResult['message']}')),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
+      // Update profile in Firebase
+      final authService = FirebaseAuthService();
+      final updateResult = await authService.updateProfile(
+        name: _nameController.text,
+        phone: _phoneController.text,
+        location: _locationController.text,
+        address: _addressController.text,
+        profileImage: imageUrl,
       );
+
+      setState(() {
+        _isLoading = false;
+        _isEditing = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(updateResult
+              ? 'Profile updated successfully'
+              : 'Failed to update profile'),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating profile: $e')),
+        );
+      }
     }
   }
 }

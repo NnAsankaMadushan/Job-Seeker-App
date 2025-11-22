@@ -7,6 +7,8 @@ import 'dart:io';
 import '../widgets/social_button.dart';
 import 'home_page.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:job_seeker_app/services/cloudinary_service.dart';
+import 'package:job_seeker_app/services/firebase_auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -26,6 +28,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final List<String> _genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
   final List<String> _userTypeOptions = ['Job Seeker', 'Job Provider'];
+
+  // Form controllers
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _locationController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _addressController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage() async {
     try {
@@ -166,6 +187,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ).animate().scale().fadeIn(),
                     const SizedBox(height: 32),
                     TextFormField(
+                      controller: _nameController,
                       decoration: const InputDecoration(
                         labelText: 'Full Name',
                         prefixIcon: Icon(Icons.person_outline),
@@ -179,6 +201,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ).animate().fadeIn().slideX(),
                     const SizedBox(height: 16),
                     TextFormField(
+                      controller: _emailController,
                       decoration: const InputDecoration(
                         labelText: 'Email',
                         prefixIcon: Icon(Icons.email_outlined),
@@ -193,6 +216,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ).animate().fadeIn(delay: 200.ms).slideX(),
                     const SizedBox(height: 16),
                     TextFormField(
+                      controller: _passwordController,
+                      decoration: const InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a password';
+                        }
+                        if (value.length < 6) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
+                    ).animate().fadeIn(delay: 250.ms).slideX(),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _phoneController,
                       decoration: const InputDecoration(
                         labelText: 'Phone Number',
                         prefixIcon: Icon(Icons.phone_outlined),
@@ -256,6 +298,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ).animate().fadeIn(delay: 500.ms).slideX(),
                     const SizedBox(height: 16),
                     TextFormField(
+                      controller: _addressController,
                       decoration: const InputDecoration(
                         labelText: 'Address',
                         prefixIcon: Icon(Icons.home_outlined),
@@ -270,6 +313,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ).animate().fadeIn(delay: 600.ms).slideX(),
                     const SizedBox(height: 16),
                     TextFormField(
+                      controller: _locationController,
                       decoration: const InputDecoration(
                         labelText: 'Location',
                         prefixIcon: Icon(Icons.location_on_outlined),
@@ -328,19 +372,74 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  void _handleRegister() {
+  void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      // Simulate registration process
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() => _isLoading = false);
-        
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-          (route) => false,
+
+      try {
+        String? imageUrl;
+
+        // Upload image to Cloudinary if selected
+        if (_imageFile != null) {
+          final cloudinaryService = CloudinaryService();
+          final uploadResult = await cloudinaryService.uploadProfileImage(_imageFile!);
+
+          if (uploadResult['success']) {
+            imageUrl = uploadResult['data'];
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to upload image: ${uploadResult['message']}')),
+              );
+            }
+            setState(() => _isLoading = false);
+            return;
+          }
+        }
+
+        // Register user with Firebase
+        final authService = FirebaseAuthService();
+        final result = await authService.register(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          userType: _selectedUserType!,
+          location: _locationController.text.trim(),
+          address: _addressController.text.trim(),
+          profileImage: imageUrl,
         );
-      });
+
+        setState(() => _isLoading = false);
+
+        if (result['success']) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Registration successful!')),
+            );
+
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const HomePage()),
+              (route) => false,
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Registration failed: ${result['message']}')),
+            );
+          }
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error during registration: $e')),
+          );
+        }
+      }
     }
   }
 }

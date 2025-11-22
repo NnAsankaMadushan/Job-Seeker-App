@@ -1,13 +1,20 @@
 import 'package:job_seeker_app/Screens/Login_screen.dart';
-import 'package:job_seeker_app/Screens/home_page.dart';
-import 'package:job_seeker_app/Screens/notification.dart';
-import 'package:job_seeker_app/Screens/post_job_screen.dart';
-import 'package:job_seeker_app/screens/available_duties_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'Screens/Login_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() => runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  // Note: Run 'flutterfire configure' to generate firebase_options.dart
+  // Uncomment the lines below after running flutterfire configure:
+  // await Firebase.initializeApp(
+  //   options: DefaultFirebaseOptions.currentPlatform,
+  // );
+
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
