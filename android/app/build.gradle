@@ -1,3 +1,11 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"
+}
+
 def facebookProperties = new Properties()
 def facebookPropertiesFile = rootProject.file("facebook.properties")
 if (facebookPropertiesFile.exists()) {
@@ -15,14 +23,6 @@ def facebookClientToken = readFacebookSecret("FACEBOOK_CLIENT_TOKEN")
 def facebookLoginScheme = readFacebookSecret("FACEBOOK_LOGIN_SCHEME")
 if (!facebookLoginScheme) {
     facebookLoginScheme = facebookAppId ? "fb${facebookAppId}" : "fb000000000000000"
-}
-
-plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
-    id "dev.flutter.flutter-gradle-plugin"
-    id "com.google.gms.google-services"
 }
 
 android {
