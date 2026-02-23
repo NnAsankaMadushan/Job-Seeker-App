@@ -105,6 +105,10 @@ class FirebaseChatService {
       }
 
       final conversationId = _getConversationId(user.uid, receiverId);
+      final conversationRef = _firestore.collection('conversations').doc(
+            conversationId,
+          );
+      final participants = [user.uid, receiverId]..sort();
 
       // Get sender name
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
@@ -119,16 +123,17 @@ class FirebaseChatService {
         'isRead': false,
       };
 
+      // Ensure conversation exists before writing to the messages subcollection.
+      await conversationRef.set({
+        'participants': participants,
+      }, SetOptions(merge: true));
+
       // Add message to conversation
-      final messageRef = await _firestore
-          .collection('conversations')
-          .doc(conversationId)
-          .collection('messages')
-          .add(messageData);
+      final messageRef = await conversationRef.collection('messages').add(messageData);
 
       // Update conversation metadata
-      await _firestore.collection('conversations').doc(conversationId).set({
-        'participants': [user.uid, receiverId],
+      await conversationRef.set({
+        'participants': participants,
         'lastMessage': content,
         'lastMessageSenderId': user.uid,
         'lastMessageTime': FieldValue.serverTimestamp(),
@@ -146,6 +151,17 @@ class FirebaseChatService {
           content: content,
           timestamp: DateTime.now(),
         ),
+      };
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return {
+          'success': false,
+          'error': 'Permission denied by Firestore rules for chat writes.',
+        };
+      }
+      return {
+        'success': false,
+        'error': 'Error sending message: ${e.message ?? e.code}',
       };
     } catch (e) {
       return {

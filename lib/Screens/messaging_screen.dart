@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:job_seeker_app/models/message.dart';
@@ -21,6 +23,7 @@ class MessagingScreen extends StatefulWidget {
 class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingObserver {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  StreamSubscription<List<Message>>? _messagesSubscription;
   List<Message> _messages = [];
   bool _isLoading = true;
   bool _isSending = false;
@@ -44,6 +47,7 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _messagesSubscription?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -53,8 +57,11 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
     setState(() => _isLoading = true);
 
     try {
+      await _messagesSubscription?.cancel();
+
       // Listen to messages stream
-      FirebaseChatService().getMessages(widget.userId).listen((messages) {
+      _messagesSubscription =
+          FirebaseChatService().getMessages(widget.userId).listen((messages) {
         if (mounted) {
           setState(() {
             _messages = messages;
@@ -104,11 +111,7 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
       );
 
       if (result['success']) {
-        final newMessage = result['message'] as Message;
-        setState(() {
-          _messages.add(newMessage);
-          _isSending = false;
-        });
+        setState(() => _isSending = false);
 
         // Scroll to bottom
         Future.delayed(const Duration(milliseconds: 100), () {
