@@ -5,6 +5,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import 'package:job_seeker_app/services/cloudinary_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -145,6 +146,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profile', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF9E72C3),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(_isEditing ? Icons.save : Icons.edit),
             onPressed: () {

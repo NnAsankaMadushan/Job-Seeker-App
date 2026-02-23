@@ -10,6 +10,7 @@ class Job {
   final String providerName;
   final String status; // 'available', 'in_progress', 'completed', 'cancelled'
   final DateTime createdAt;
+  final DateTime expiresAt;
   final String? assignedTo;
 
   Job({
@@ -24,10 +25,13 @@ class Job {
     required this.providerName,
     required this.status,
     required this.createdAt,
+    required this.expiresAt,
     this.assignedTo,
   });
 
   factory Job.fromJson(Map<String, dynamic> json) {
+    final createdAt = _parseDate(json['createdAt']);
+
     return Job(
       id: json['id'] ?? '',
       title: json['title'] ?? '',
@@ -39,9 +43,17 @@ class Job {
       providerId: json['providerId'] ?? '',
       providerName: json['providerName'] ?? '',
       status: json['status'] ?? 'available',
-      createdAt: _parseDate(json['createdAt']),
+      createdAt: createdAt,
+      expiresAt: _parseExpiry(json['expiresAt'], createdAt),
       assignedTo: json['assignedTo'],
     );
+  }
+
+  static DateTime _parseExpiry(dynamic expiresAtValue, DateTime createdAt) {
+    if (expiresAtValue == null) {
+      return createdAt.add(const Duration(hours: 24));
+    }
+    return _parseDate(expiresAtValue);
   }
 
   static DateTime _parseDate(dynamic dateValue) {
@@ -87,6 +99,7 @@ class Job {
       'providerName': providerName,
       'status': status,
       'createdAt': createdAt.toIso8601String(),
+      'expiresAt': expiresAt.toIso8601String(),
       'assignedTo': assignedTo,
     };
   }
@@ -94,4 +107,5 @@ class Job {
   bool isAvailable() => status == 'available';
   bool isInProgress() => status == 'in_progress';
   bool isCompleted() => status == 'completed';
+  bool isExpired() => DateTime.now().isAfter(expiresAt);
 }

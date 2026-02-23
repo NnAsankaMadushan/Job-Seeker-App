@@ -16,6 +16,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
   final FirebaseJobService _jobService = FirebaseJobService();
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
+  DateTime? _selectedEndDate;
+  TimeOfDay? _selectedEndTime;
   bool _isPosting = false;
   bool _isFetchingLocation = false;
 
@@ -57,6 +59,42 @@ class _PostJobScreenState extends State<PostJobScreen> {
         _selectedTime = picked;
       });
     }
+  }
+
+  Future<void> _selectEndDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedEndDate ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null && picked != _selectedEndDate) {
+      setState(() {
+        _selectedEndDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectEndTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedEndTime ?? TimeOfDay.now(),
+    );
+    if (picked != null && picked != _selectedEndTime) {
+      setState(() {
+        _selectedEndTime = picked;
+      });
+    }
+  }
+
+  DateTime _combineDateAndTime(DateTime date, TimeOfDay time) {
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
   }
 
   void _showSnackBar(String message) {
@@ -325,6 +363,57 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: _selectEndDate,
+                                        child: InputDecorator(
+                                          decoration: InputDecoration(
+                                            labelText: 'End Date (Optional)',
+                                            prefixIcon: const Icon(Icons.event_busy_outlined),
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _selectedEndDate != null
+                                                ? "${_selectedEndDate!.day}/${_selectedEndDate!.month}/${_selectedEndDate!.year}"
+                                                : 'Default: +24 hours',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: _selectEndTime,
+                                        child: InputDecorator(
+                                          decoration: InputDecoration(
+                                            labelText: 'End Time (Optional)',
+                                            prefixIcon: const Icon(Icons.timelapse_outlined),
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _selectedEndTime != null
+                                                ? _selectedEndTime!.format(context)
+                                                : 'Default: +24 hours',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'If not set, this opportunity will expire in 24 hours.',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
                                 _buildTextField(
                                   controller: _budgetController,
                                   label: 'Budget',
@@ -402,6 +491,24 @@ class _PostJobScreenState extends State<PostJobScreen> {
       return;
     }
 
+    DateTime? expiresAt;
+    final isPartialEndInput = (_selectedEndDate == null) != (_selectedEndTime == null);
+    if (isPartialEndInput) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select both end date and end time')),
+      );
+      return;
+    }
+    if (_selectedEndDate != null && _selectedEndTime != null) {
+      expiresAt = _combineDateAndTime(_selectedEndDate!, _selectedEndTime!);
+      if (!expiresAt.isAfter(DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('End date and time must be in the future')),
+        );
+        return;
+      }
+    }
+
     setState(() => _isPosting = true);
 
     try {
@@ -415,6 +522,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
         date: _selectedDate!,
         time: time,
         budget: budget,
+        expiresAt: expiresAt,
       );
 
       setState(() => _isPosting = false);

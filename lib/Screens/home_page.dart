@@ -15,6 +15,7 @@ import 'profile_screen.dart';
 import 'available_duties_screen.dart';
 import 'post_job_screen.dart';
 import 'search_screen.dart';
+import 'settings_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,7 +32,8 @@ class _HomePageState extends State<HomePage> {
     const _HomeContent(),  // Extracted home content
     const SearchScreen(), // Your search screen
     const MyJobsScreen(),   // Your jobs screen
-    const ProfileScreen() // Your profile screen
+    const ProfileScreen(), // Your profile screen
+    const SettingsScreen(), // Settings screen
   ];
 
   @override
@@ -83,6 +85,11 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
             label: 'Profile',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
       ),
