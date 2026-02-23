@@ -1,1 +1,7 @@
 #include "Generated.xcconfig"
+
+FACEBOOK_APP_ID=000000000000000
+FACEBOOK_CLIENT_TOKEN=
+FACEBOOK_URL_SCHEME=fb$(FACEBOOK_APP_ID)
+
+#include? "FacebookSecrets.xcconfig"

@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         SocialLoginButtons(
                           isLoading: _isLoading,
                           onGooglePressed: _handleGoogleSignIn,
-                          onFacebookPressed: () => _showProviderNotConfigured('Facebook'),
+                          onFacebookPressed: _handleFacebookSignIn,
                           onApplePressed: () => _showProviderNotConfigured('Apple'),
                         ),
                       ],
@@ -222,6 +222,35 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Google sign-in failed: ${result['message']}')),
+      );
+    }
+  }
+
+  Future<void> _handleFacebookSignIn() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    final authService = FirebaseAuthService();
+    final result = await authService.signInWithFacebook();
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Facebook sign-in successful!')),
+      );
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Facebook sign-in failed: ${result['message']}')),
       );
     }
   }

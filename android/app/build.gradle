@@ -1,3 +1,22 @@
+def facebookProperties = new Properties()
+def facebookPropertiesFile = rootProject.file("facebook.properties")
+if (facebookPropertiesFile.exists()) {
+    facebookPropertiesFile.withInputStream { stream ->
+        facebookProperties.load(stream)
+    }
+}
+
+def readFacebookSecret = { String key ->
+    return (facebookProperties.getProperty(key) ?: System.getenv(key) ?: "").trim()
+}
+
+def facebookAppId = readFacebookSecret("FACEBOOK_APP_ID")
+def facebookClientToken = readFacebookSecret("FACEBOOK_CLIENT_TOKEN")
+def facebookLoginScheme = readFacebookSecret("FACEBOOK_LOGIN_SCHEME")
+if (!facebookLoginScheme) {
+    facebookLoginScheme = facebookAppId ? "fb${facebookAppId}" : "fb000000000000000"
+}
+
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -29,6 +48,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        resValue "string", "facebook_app_id", facebookAppId ?: "000000000000000"
+        resValue "string", "facebook_client_token", facebookClientToken
+        resValue "string", "fb_login_protocol_scheme", facebookLoginScheme
     }
 
     buildTypes {

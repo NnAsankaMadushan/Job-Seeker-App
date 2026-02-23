@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:job_seeker_app/models/user.dart' as app_user;
 
 class FirebaseAuthService {
@@ -208,9 +209,97 @@ class FirebaseAuthService {
     }
   }
 
+  // Sign in with Facebook
+  Future<Map<String, dynamic>> signInWithFacebook() async {
+    try {
+      final LoginResult loginResult = await FacebookAuth.instance.login(
+        permissions: const ['email', 'public_profile'],
+      );
+
+      switch (loginResult.status) {
+        case LoginStatus.success:
+          final AccessToken? accessToken = loginResult.accessToken;
+          if (accessToken == null || accessToken.tokenString.isEmpty) {
+            return {
+              'success': false,
+              'message': 'Failed to get Facebook access token',
+            };
+          }
+
+          final OAuthCredential credential = FacebookAuthProvider.credential(
+            accessToken.tokenString,
+          );
+
+          final UserCredential userCredential = await _auth.signInWithCredential(credential);
+          final User? firebaseUser = userCredential.user;
+
+          if (firebaseUser == null) {
+            return {
+              'success': false,
+              'message': 'Facebook sign-in failed',
+            };
+          }
+
+          await _ensureUserDocument(firebaseUser);
+
+          final doc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+          if (!doc.exists) {
+            return {
+              'success': false,
+              'message': 'User data not found after Facebook sign-in',
+            };
+          }
+
+          return {
+            'success': true,
+            'message': 'Facebook sign-in successful',
+            'user': app_user.User.fromJson({
+              'id': doc.id,
+              ...doc.data()!,
+            }),
+          };
+        case LoginStatus.cancelled:
+          return {
+            'success': false,
+            'message': 'Facebook sign-in was cancelled',
+          };
+        case LoginStatus.failed:
+          final errorMessage = loginResult.message;
+          return {
+            'success': false,
+            'message': (errorMessage == null || errorMessage.isEmpty)
+                ? 'Facebook sign-in failed'
+                : 'Facebook sign-in failed: $errorMessage',
+          };
+        case LoginStatus.operationInProgress:
+          return {
+            'success': false,
+            'message': 'Facebook sign-in is already in progress',
+          };
+      }
+    } on FirebaseAuthException catch (e) {
+      return {
+        'success': false,
+        'message': _getFirebaseAuthErrorMessage(e.code),
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Facebook sign-in failed: $e',
+      };
+    }
+  }
+
   // Logout
   Future<void> logout() async {
-    await _googleSignIn.signOut();
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
+
+    try {
+      await FacebookAuth.instance.logOut();
+    } catch (_) {}
+
     await _auth.signOut();
   }
 
