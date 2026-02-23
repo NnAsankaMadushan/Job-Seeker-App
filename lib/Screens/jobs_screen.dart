@@ -139,7 +139,7 @@ class _JobsScreenState extends State<JobsScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text('Location: ${job.location}'),
-                                Text('Budget: \$${job.budget}/hr'),
+                                Text('Budget: \$${job.budget}'),
                                 Text('Date: ${job.date.day}/${job.date.month}/${job.date.year}'),
                                 const SizedBox(height: 8),
                                 Text(

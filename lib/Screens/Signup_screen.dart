@@ -264,7 +264,9 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     final authService = FirebaseAuthService();
-    final result = await authService.signInWithGoogle();
+    final result = await authService.signInWithGoogle(
+      forceAccountSelection: true,
+    );
 
     if (!mounted) return;
 

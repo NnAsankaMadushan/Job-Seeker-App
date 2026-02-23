@@ -328,7 +328,7 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '\$${job.budget.toStringAsFixed(2)}/hr',
+                                '\$${job.budget.toStringAsFixed(2)}',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium

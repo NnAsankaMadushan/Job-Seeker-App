@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
 
 class PostJobScreen extends StatefulWidget {
@@ -15,6 +17,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   bool _isPosting = false;
+  bool _isFetchingLocation = false;
 
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -56,6 +59,110 @@ class _PostJobScreenState extends State<PostJobScreen> {
     }
   }
 
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  void _showSnackBarAction({
+    required String message,
+    required String actionLabel,
+    required VoidCallback onAction,
+  }) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(
+          label: actionLabel,
+          onPressed: onAction,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _useCurrentLocation() async {
+    if (_isFetchingLocation) return;
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _isFetchingLocation = true;
+    });
+
+    try {
+      final isLocationEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isLocationEnabled) {
+        _showSnackBarAction(
+          message: 'Location services are disabled.',
+          actionLabel: 'Enable',
+          onAction: () {
+            Geolocator.openLocationSettings();
+          },
+        );
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        _showSnackBar('Location permission denied.');
+        return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _showSnackBarAction(
+          message: 'Location permission permanently denied.',
+          actionLabel: 'Settings',
+          onAction: () {
+            Geolocator.openAppSettings();
+          },
+        );
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      String resolvedLocation;
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        final addressParts = <String>[
+          if (place.subLocality?.trim().isNotEmpty ?? false) place.subLocality!.trim(),
+          if (place.locality?.trim().isNotEmpty ?? false) place.locality!.trim(),
+          if (place.administrativeArea?.trim().isNotEmpty ?? false)
+            place.administrativeArea!.trim(),
+          if (place.country?.trim().isNotEmpty ?? false) place.country!.trim(),
+        ];
+
+        resolvedLocation = addressParts.join(', ');
+      } else {
+        resolvedLocation =
+            '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
+      }
+
+      _locationController.text = resolvedLocation;
+    } catch (_) {
+      _showSnackBar('Unable to fetch current location. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingLocation = false;
+        });
+      }
+    }
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -64,6 +171,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
     int maxLines = 1,
     TextInputType? keyboardType,
     String? prefixText,
+    Widget? suffixIcon,
   }) {
     return TextFormField(
       controller: controller,
@@ -72,6 +180,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
         hintText: hint,
         prefixIcon: Icon(icon),
         prefixText: prefixText,
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
         ),
@@ -156,6 +265,20 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                   label: 'Location',
                                   icon: Icons.location_on_outlined,
                                   hint: 'Enter job location',
+                                  suffixIcon: _isFetchingLocation
+                                      ? const Padding(
+                                          padding: EdgeInsets.all(12),
+                                          child: SizedBox(
+                                            height: 18,
+                                            width: 18,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          ),
+                                        )
+                                      : IconButton(
+                                          tooltip: 'Use current location',
+                                          onPressed: _useCurrentLocation,
+                                          icon: const Icon(Icons.my_location_outlined),
+                                        ),
                                 ),
                                 const SizedBox(height: 16),
                                 Row(
@@ -204,9 +327,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                 const SizedBox(height: 16),
                                 _buildTextField(
                                   controller: _budgetController,
-                                  label: 'Budget (per hour)',
+                                  label: 'Budget',
                                   icon: Icons.attach_money_outlined,
-                                  hint: 'Enter hourly rate',
+                                  hint: 'Enter budget',
                                   keyboardType: TextInputType.number,
                                   prefixText: '\$ ',
                                 ),

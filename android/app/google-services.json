@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "987567896170-st8ub4rjbbo0k9gemj2kr47l7h97j2h4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.jobseeker",
+            "certificate_hash": "1d7c13ed844165b1e8b11bec9248c4e981197cc7"
+          }
+        },
+        {
           "client_id": "987567896170-54hlt7uh60s7nhfah7a4ueiar0p59tqg.apps.googleusercontent.com",
           "client_type": 3
         }

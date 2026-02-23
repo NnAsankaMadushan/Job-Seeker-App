@@ -158,7 +158,7 @@ class JobCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '\$${job.budget}/hr',
+                    '\$${job.budget}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: const Color(0xFF9E72C3),
                           fontWeight: FontWeight.bold,

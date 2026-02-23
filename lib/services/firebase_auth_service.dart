@@ -133,8 +133,16 @@ class FirebaseAuthService {
   }
 
   // Sign in with Google
-  Future<Map<String, dynamic>> signInWithGoogle() async {
+  Future<Map<String, dynamic>> signInWithGoogle({
+    bool forceAccountSelection = false,
+  }) async {
     try {
+      if (forceAccountSelection) {
+        try {
+          await _googleSignIn.signOut();
+        } catch (_) {}
+      }
+
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {

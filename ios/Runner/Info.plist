@@ -6,6 +6,8 @@
 	<string>This app requires access to the photo library for picking profile photo.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app requires access to the camera for taking profile photo.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs your location to auto-fill the job location.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
