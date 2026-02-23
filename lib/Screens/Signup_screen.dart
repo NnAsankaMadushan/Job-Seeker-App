@@ -1,5 +1,5 @@
-import 'package:job_seeker_app/screens/login_screen.dart';
-import 'package:job_seeker_app/screens/register_screen.dart';
+import 'package:job_seeker_app/Screens/Login_screen.dart';
+import 'package:job_seeker_app/Screens/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:job_seeker_app/Screens/home_page.dart';

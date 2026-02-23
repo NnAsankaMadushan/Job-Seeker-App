@@ -3,7 +3,6 @@ import 'package:job_seeker_app/Screens/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../widgets/social_button.dart';
-import 'register_screen.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,6 +17,21 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _navigateToHome() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const HomePage()),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -181,11 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SnackBar(content: Text('Login successful!')),
           );
 
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const HomePage()),
-            (route) => false,
-          );
+          _navigateToHome();
         }
       } else {
         if (mounted) {
@@ -216,11 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SnackBar(content: Text('Google sign-in successful!')),
       );
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-        (route) => false,
-      );
+      _navigateToHome();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Google sign-in failed: ${result['message']}')),
@@ -245,11 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SnackBar(content: Text('Facebook sign-in successful!')),
       );
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-        (route) => false,
-      );
+      _navigateToHome();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Facebook sign-in failed: ${result['message']}')),
