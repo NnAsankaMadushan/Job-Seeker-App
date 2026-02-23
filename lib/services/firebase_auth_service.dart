@@ -1,10 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:job_seeker_app/models/user.dart' as app_user;
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -128,8 +131,86 @@ class FirebaseAuthService {
     }
   }
 
+  // Sign in with Google
+  Future<Map<String, dynamic>> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        return {
+          'success': false,
+          'message': 'Google sign-in was cancelled',
+        };
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      if (googleAuth.idToken == null) {
+        return {
+          'success': false,
+          'message':
+              'Failed to get Google auth token. Check Firebase Google Sign-In setup and google-services.json.',
+        };
+      }
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final User? firebaseUser = userCredential.user;
+
+      if (firebaseUser == null) {
+        return {
+          'success': false,
+          'message': 'Google sign-in failed',
+        };
+      }
+
+      await _ensureUserDocument(firebaseUser);
+
+      final doc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+      if (!doc.exists) {
+        return {
+          'success': false,
+          'message': 'User data not found after Google sign-in',
+        };
+      }
+
+      return {
+        'success': true,
+        'message': 'Google sign-in successful',
+        'user': app_user.User.fromJson({
+          'id': doc.id,
+          ...doc.data()!,
+        }),
+      };
+    } on FirebaseAuthException catch (e) {
+      return {
+        'success': false,
+        'message': _getFirebaseAuthErrorMessage(e.code),
+      };
+    } on PlatformException catch (e) {
+      final isApi10 =
+          e.code == 'sign_in_failed' && (e.message?.contains('ApiException: 10') ?? false);
+      return {
+        'success': false,
+        'message': isApi10
+            ? 'Google Sign-In configuration error (ApiException: 10). Add SHA-1/SHA-256 in Firebase for this app, then download a new google-services.json.'
+            : 'Google sign-in failed: ${e.message ?? e.code}',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Google sign-in failed: $e',
+      };
+    }
+  }
+
   // Logout
   Future<void> logout() async {
+    await _googleSignIn.signOut();
     await _auth.signOut();
   }
 
@@ -178,6 +259,66 @@ class FirebaseAuthService {
     }
   }
 
+  // Ensure a Firestore profile exists for OAuth users.
+  Future<void> _ensureUserDocument(User firebaseUser) async {
+    final userRef = _firestore.collection('users').doc(firebaseUser.uid);
+    final userDoc = await userRef.get();
+
+    final fallbackName = firebaseUser.displayName?.trim();
+    final nameToUse = (fallbackName != null && fallbackName.isNotEmpty) ? fallbackName : 'User';
+
+    if (!userDoc.exists) {
+      await userRef.set({
+        'name': nameToUse,
+        'email': firebaseUser.email ?? '',
+        'phone': firebaseUser.phoneNumber ?? '',
+        'userType': 'Job Seeker',
+        'location': null,
+        'address': null,
+        'profileImage': firebaseUser.photoURL,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    final data = userDoc.data() ?? {};
+    final Map<String, dynamic> updates = {};
+
+    final currentName = data['name'] as String?;
+    final currentEmail = data['email'] as String?;
+    final currentPhone = data['phone'] as String?;
+    final currentProfileImage = data['profileImage'] as String?;
+
+    if (currentName == null || currentName.trim().isEmpty) {
+      updates['name'] = nameToUse;
+    }
+
+    if ((currentEmail == null || currentEmail.trim().isEmpty) && firebaseUser.email != null) {
+      updates['email'] = firebaseUser.email;
+    }
+
+    if ((currentPhone == null || currentPhone.trim().isEmpty) && firebaseUser.phoneNumber != null) {
+      updates['phone'] = firebaseUser.phoneNumber;
+    }
+
+    if ((currentProfileImage == null || currentProfileImage.trim().isEmpty) &&
+        firebaseUser.photoURL != null) {
+      updates['profileImage'] = firebaseUser.photoURL;
+    }
+
+    if (!data.containsKey('userType')) {
+      updates['userType'] = 'Job Seeker';
+    }
+
+    if (!data.containsKey('createdAt')) {
+      updates['createdAt'] = FieldValue.serverTimestamp();
+    }
+
+    if (updates.isNotEmpty) {
+      await userRef.update(updates);
+    }
+  }
+
   // Get Firebase Auth error messages
   String _getFirebaseAuthErrorMessage(String code) {
     switch (code) {
@@ -195,6 +336,14 @@ class FirebaseAuthService {
         return 'This account has been disabled.';
       case 'too-many-requests':
         return 'Too many attempts. Please try again later.';
+      case 'account-exists-with-different-credential':
+        return 'An account already exists with a different sign-in method.';
+      case 'invalid-credential':
+        return 'The credential is invalid or has expired.';
+      case 'operation-not-allowed':
+        return 'This sign-in provider is not enabled in Firebase.';
+      case 'network-request-failed':
+        return 'Network error. Please check your connection and try again.';
       default:
         return 'Authentication failed. Please try again.';
     }

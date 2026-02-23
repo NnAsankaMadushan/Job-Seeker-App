@@ -2,7 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class SocialLoginButtons extends StatelessWidget {
-  const SocialLoginButtons({super.key});
+  final VoidCallback? onFacebookPressed;
+  final VoidCallback? onGooglePressed;
+  final VoidCallback? onApplePressed;
+  final bool isLoading;
+
+  const SocialLoginButtons({
+    super.key,
+    this.onFacebookPressed,
+    this.onGooglePressed,
+    this.onApplePressed,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -32,19 +43,19 @@ class SocialLoginButtons extends StatelessWidget {
               icon: Icons.facebook,
               label: 'Facebook',
               color: const Color(0xFF1877F2),
-              onPressed: () {},
+              onPressed: isLoading ? null : onFacebookPressed,
             ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.3),
             _SocialButton(
               icon: Icons.g_mobiledata,
               label: 'Google',
               color: const Color(0xFFDB4437),
-              onPressed: () {},
+              onPressed: isLoading ? null : onGooglePressed,
             ).animate().fadeIn(delay: 600.ms),
             _SocialButton(
               icon: Icons.apple,
               label: 'Apple',
               color: Colors.black,
-              onPressed: () {},
+              onPressed: isLoading ? null : onApplePressed,
             ).animate().fadeIn(delay: 700.ms).slideX(begin: 0.3),
           ],
         ),
@@ -57,7 +68,7 @@ class _SocialButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _SocialButton({
     required this.icon,
@@ -68,6 +79,8 @@ class _SocialButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isEnabled = onPressed != null;
+
     return Tooltip(
       message: 'Sign in with $label',
       child: Material(
@@ -81,7 +94,7 @@ class _SocialButton extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Icon(
               icon,
-              color: color,
+              color: isEnabled ? color : color.withOpacity(0.45),
               size: 28,
             ),
           ),

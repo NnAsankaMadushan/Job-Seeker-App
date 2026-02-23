@@ -144,7 +144,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ).animate().fadeIn(delay: 500.ms),
                         const SizedBox(height: 24),
-                        const SocialLoginButtons(),
+                        SocialLoginButtons(
+                          isLoading: _isLoading,
+                          onGooglePressed: _handleGoogleSignIn,
+                          onFacebookPressed: () => _showProviderNotConfigured('Facebook'),
+                          onApplePressed: () => _showProviderNotConfigured('Apple'),
+                        ),
                       ],
                     ),
                   ),
@@ -190,5 +195,40 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    final authService = FirebaseAuthService();
+    final result = await authService.signInWithGoogle();
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Google sign-in successful!')),
+      );
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google sign-in failed: ${result['message']}')),
+      );
+    }
+  }
+
+  void _showProviderNotConfigured(String provider) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$provider sign-in is not configured yet.')),
+    );
   }
 }
