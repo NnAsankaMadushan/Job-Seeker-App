@@ -161,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         SocialLoginButtons(
                           isLoading: _isLoading,
                           onGooglePressed: _handleGoogleSignIn,
-                          onFacebookPressed: _handleFacebookSignIn,
+                          // onFacebookPressed: _handleFacebookSignIn,
                           onApplePressed: () => _showProviderNotConfigured('Apple'),
                         ),
                       ],
@@ -234,30 +234,30 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _handleFacebookSignIn() async {
-    if (_isLoading) return;
-
-    setState(() => _isLoading = true);
-
-    final authService = FirebaseAuthService();
-    final result = await authService.signInWithFacebook();
-
-    if (!mounted) return;
-
-    setState(() => _isLoading = false);
-
-    if (result['success']) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Facebook sign-in successful!')),
-      );
-
-      _navigateToHome();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Facebook sign-in failed: ${result['message']}')),
-      );
-    }
-  }
+  // Future<void> _handleFacebookSignIn() async {
+  //   if (_isLoading) return;
+  //
+  //   setState(() => _isLoading = true);
+  //
+  //   final authService = FirebaseAuthService();
+  //   final result = await authService.signInWithFacebook();
+  //
+  //   if (!mounted) return;
+  //
+  //   setState(() => _isLoading = false);
+  //
+  //   if (result['success']) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Facebook sign-in successful!')),
+  //     );
+  //
+  //     _navigateToHome();
+  //   } else {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Facebook sign-in failed: ${result['message']}')),
+  //     );
+  //   }
+  // }
 
   void _showProviderNotConfigured(String provider) {
     ScaffoldMessenger.of(context).showSnackBar(
