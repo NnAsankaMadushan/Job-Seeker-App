@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
 import 'package:job_seeker_app/models/job.dart' as JobModel;
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class MyJobsScreen extends StatefulWidget {
   const MyJobsScreen({super.key});
@@ -19,19 +20,8 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Applied Jobs'),
-        backgroundColor: const Color(0xFF9E72C3).withOpacity(0.2),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer,
-              Theme.of(context).colorScheme.secondaryContainer,
-            ],
-          ),
-        ),
+      body: AppGradientBackground(
         child: StreamBuilder<List<JobModel.Job>>(
           stream: _jobService.getMyAppliedJobs(),
           builder: (context, snapshot) {
@@ -48,32 +38,14 @@ class _MyJobsScreenState extends State<MyJobsScreen> {
             final jobs = snapshot.data ?? [];
 
             if (jobs.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.work_off_outlined,
-                      size: 64,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No applied jobs yet',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Apply for jobs to see them here',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: AppEmptyState(
+                    icon: Icons.work_off_outlined,
+                    title: 'No applied jobs yet',
+                    subtitle: 'Apply for jobs to see them here',
+                  ),
                 ),
               );
             }
@@ -121,10 +93,10 @@ class JobCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: const Color(0xFF9E72C3).withOpacity(0.2),
-                  child: const Icon(
+                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
+                  child: Icon(
                     Icons.work_outline,
-                    color: Color(0xFF9E72C3),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -154,13 +126,13 @@ class JobCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF9E72C3).withOpacity(0.2),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.14),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '\$${job.budget}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: const Color(0xFF9E72C3),
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,
                         ),
                   ),

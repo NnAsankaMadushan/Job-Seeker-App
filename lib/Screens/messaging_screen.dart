@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:job_seeker_app/models/message.dart';
 import 'package:job_seeker_app/services/firebase_chat_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class MessagingScreen extends StatefulWidget {
   final String userId;
@@ -147,12 +148,7 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.userName ?? 'User ${widget.userId}',
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: const Color(0xFF9E72C3),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(widget.userName ?? 'User ${widget.userId}'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -160,49 +156,21 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF9E72C3).withOpacity(0.1),
-              Colors.white,
-            ],
-          ),
-        ),
+      body: AppGradientBackground(
         child: Column(
           children: [
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _messages.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.chat_bubble_outline,
-                                size: 64,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No messages yet',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Start the conversation!',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                            ],
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: AppEmptyState(
+                              icon: Icons.chat_bubble_outline,
+                              title: 'No messages yet',
+                              subtitle: 'Start the conversation',
+                            ),
                           ),
                         )
                       : ListView.builder(
@@ -224,14 +192,16 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
                         ),
             ),
             Container(
+              margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
+                color: Colors.white.withOpacity(0.88),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, -2),
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
@@ -261,7 +231,7 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
                     ),
                     const SizedBox(width: 8),
                     CircleAvatar(
-                      backgroundColor: const Color(0xFF9E72C3),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       child: IconButton(
                         icon: _isSending
                             ? const SizedBox(
@@ -298,6 +268,10 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bubbleColor = isSent
+        ? Theme.of(context).colorScheme.primary
+        : Colors.white.withOpacity(0.9);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -308,13 +282,13 @@ class _MessageBubble extends StatelessWidget {
           if (!isSent) ...[
             CircleAvatar(
               radius: 16,
-              backgroundColor: const Color(0xFF9E72C3).withOpacity(0.2),
+              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
               child: Text(
                 message.senderName.isNotEmpty
                     ? message.senderName[0].toUpperCase()
                     : '?',
-                style: const TextStyle(
-                  color: Color(0xFF9E72C3),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -332,9 +306,7 @@ class _MessageBubble extends StatelessWidget {
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: isSent
-                        ? const Color(0xFF9E72C3)
-                        : Colors.grey[200],
+                    color: bubbleColor,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(20),
                       topRight: const Radius.circular(20),

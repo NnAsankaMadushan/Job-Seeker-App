@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class PostJobScreen extends StatefulWidget {
   const PostJobScreen({super.key});
@@ -240,20 +241,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         title: const Text('Post a Job'),
-        backgroundColor: const Color(0xFF9E72C3).withOpacity(0.2),
-        elevation: 0,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer,
-              Theme.of(context).colorScheme.secondaryContainer,
-            ],
-          ),
-        ),
+      body: AppGradientBackground(
         child: SafeArea(
           child: CustomScrollView(
             slivers: [
@@ -278,7 +267,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                 Text(
                                   'Job Details',
                                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: const Color(0xFF9E72C3),
+                                    color: Theme.of(context).colorScheme.primary,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -434,8 +423,6 @@ class _PostJobScreenState extends State<PostJobScreen> {
                             child: ElevatedButton(
                               onPressed: _isPosting ? null : _handlePostJob,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF9E72C3),
-                                foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),

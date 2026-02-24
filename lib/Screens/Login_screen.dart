@@ -2,6 +2,7 @@ import 'package:job_seeker_app/Screens/Signup_screen.dart';
 import 'package:job_seeker_app/Screens/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 import '../widgets/social_button.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 
@@ -36,51 +37,47 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SizedBox.expand(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.primaryContainer,
-                Theme.of(context).colorScheme.secondaryContainer,
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  const SizedBox(height: 48),
-                  Icon(
-                    Icons.chat_bubble_outline_rounded,
-                    size: 80,
-                    color: Theme.of(context).colorScheme.primary,
-                  ).animate().shimmer().scale(
-                        begin: const Offset(0.9, 0.9),
-                        end: const Offset(1.1, 1.1),
-                        duration: 1000.ms,
+      body: AppGradientBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.chat_rounded,
+                  size: 72,
+                  color: Theme.of(context).colorScheme.primary,
+                ).animate().shimmer().scale(
+                      begin: const Offset(0.94, 0.94),
+                      end: const Offset(1.06, 1.06),
+                      duration: 1000.ms,
+                    ),
+                const SizedBox(height: 20),
+                Text(
+                  'Welcome Back',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
-                  const SizedBox(height: 48),
-                  Text(
-                    'Welcome Back !',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ).animate().fadeIn().slideY(),
-                  const SizedBox(height: 48),
-                  Form(
+                ).animate().fadeIn().slideY(),
+                const SizedBox(height: 8),
+                Text(
+                  'Log in to continue your job conversations.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 28),
+                AppGlassCard(
+                  child: Form(
                     key: _formKey,
                     child: Column(
                       children: [
                         TextFormField(
                           controller: _usernameController,
-                          decoration: InputDecoration(
-                            labelText: 'Username',
-                            prefixIcon: const Icon(Icons.person_outline),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.person_outline),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -93,16 +90,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ).animate().fadeIn().slideX(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Password',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                            prefixIcon: Icon(Icons.lock_outline),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -111,37 +105,25 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (value.length < 8) {
                               return 'Password must be at least 8 characters long';
                             }
-                            // // Check for at least one uppercase letter
-                            // if (!value.contains(RegExp(r'[A-Z]'))) {
-                            //   return 'Password must contain at least one uppercase letter';
-                            // }
-                            // // Check for at least one lowercase letter
-                            // if (!value.contains(RegExp(r'[a-z]'))) {
-                            //   return 'Password must contain at least one lowercase letter';
-                            // }
-                            // // Check for at least one number
-                            // if (!value.contains(RegExp(r'[0-9]'))) {
-                            //   return 'Password must contain at least one number';
-                            // }
-                            // // Check for at least one special character
-                            // if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
-                            //   return 'Password must contain at least one special character';
-                            // }
                             return null;
                           },
                           autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ).animate().fadeIn(delay: 200.ms).slideX(),
-                        const SizedBox(height: 24),
+                        ).animate().fadeIn(delay: 160.ms).slideX(),
+                        const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _handleLogin,
                             child: _isLoading
-                                ? const CircularProgressIndicator()
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
                                 : const Text('Login'),
                           ),
-                        ).animate().fadeIn(delay: 400.ms).slideY(),
-                        const SizedBox(height: 16),
+                        ).animate().fadeIn(delay: 280.ms).slideY(),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -156,19 +138,17 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: const Text('Sign Up'),
                             ),
                           ],
-                        ).animate().fadeIn(delay: 500.ms),
-                        const SizedBox(height: 24),
+                        ).animate().fadeIn(delay: 360.ms),
                         SocialLoginButtons(
                           isLoading: _isLoading,
                           onGooglePressed: _handleGoogleSignIn,
-                          // onFacebookPressed: _handleFacebookSignIn,
                           onApplePressed: () => _showProviderNotConfigured('Apple'),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ).animate().fadeIn(delay: 120.ms).slideY(begin: 0.08),
+              ],
             ),
           ),
         ),

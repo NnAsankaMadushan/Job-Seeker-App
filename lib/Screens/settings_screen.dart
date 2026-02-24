@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:job_seeker_app/Screens/Login_screen.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -62,41 +63,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: const Color(0xFF9E72C3),
       ),
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer,
-              Theme.of(context).colorScheme.secondaryContainer,
-            ],
-          ),
-        ),
+      body: AppGradientBackground(
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              const AppSectionHeader(
+                title: 'Preferences',
+                subtitle: 'Control your account and app behavior',
               ),
-              child: ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Logout'),
-                subtitle: const Text('Sign out from your account'),
-                trailing: _isLoggingOut
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : null,
-                onTap: _isLoggingOut ? null : _handleLogout,
+              const SizedBox(height: 14),
+              AppGlassCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Icon(
+                        Icons.notifications_active_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      title: const Text('Notifications'),
+                      subtitle: const Text('Manage push and in-app alerts'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {},
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: Icon(
+                        Icons.security_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      title: const Text('Privacy & Security'),
+                      subtitle: const Text('Update lock and account access settings'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {},
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: Icon(
+                        Icons.palette_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      title: const Text('Appearance'),
+                      subtitle: const Text('Customize visual preferences'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {},
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 14),
+              AppGlassCard(
+                padding: EdgeInsets.zero,
+                child: ListTile(
+                  leading: const Icon(Icons.logout_rounded, color: Colors.red),
+                  title: const Text('Logout'),
+                  subtitle: const Text('Sign out from your account'),
+                  trailing: _isLoggingOut
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : null,
+                  onTap: _isLoggingOut ? null : _handleLogout,
+                ),
+              ),
+            ],
           ),
         ),
       ),

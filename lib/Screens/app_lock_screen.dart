@@ -7,6 +7,7 @@ import 'package:local_auth_darwin/local_auth_darwin.dart';
 import 'package:job_seeker_app/Screens/Login_screen.dart';
 import 'package:job_seeker_app/Screens/home_page.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class AppLockScreen extends StatefulWidget {
   const AppLockScreen({super.key});
@@ -239,62 +240,63 @@ class _AppLockScreenState extends State<AppLockScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer,
-              Theme.of(context).colorScheme.secondaryContainer,
-            ],
-          ),
-        ),
+      body: AppGradientBackground(
         child: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _getAuthIcon(),
-                    size: 72,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'App Lock',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _statusMessage,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  if (_availableMethods.isNotEmpty)
+              padding: const EdgeInsets.all(24),
+              child: AppGlassCard(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 84,
+                      height: 84,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.14),
+                      ),
+                      child: Icon(
+                        _getAuthIcon(),
+                        size: 42,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     Text(
-                      'Available: ${_availableMethods.join('  |  ')}',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      'Secure Unlock',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
                           ),
                     ),
-                  const SizedBox(height: 24),
-                  if (_isAuthenticating)
-                    const CircularProgressIndicator()
-                  else
-                    ElevatedButton.icon(
-                      onPressed: _authenticate,
-                      icon: const Icon(Icons.lock_open),
-                      label: const Text('Unlock Now'),
+                    const SizedBox(height: 10),
+                    Text(
+                      _statusMessage,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
-                ],
+                    const SizedBox(height: 8),
+                    if (_availableMethods.isNotEmpty)
+                      Text(
+                        'Available: ${_availableMethods.join('  •  ')}',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _isAuthenticating
+                          ? const Center(child: CircularProgressIndicator())
+                          : ElevatedButton.icon(
+                              onPressed: _authenticate,
+                              icon: const Icon(Icons.lock_open_rounded),
+                              label: Text('Unlock with ${_getAuthMethodLabel()}'),
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

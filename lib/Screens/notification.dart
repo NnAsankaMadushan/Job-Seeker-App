@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:job_seeker_app/services/firebase_notification_service.dart';
 import 'package:job_seeker_app/models/notification.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -33,7 +34,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     switch (type) {
       case 'job':
       case 'application':
-        return const Color(0xFF9E72C3);
+        return Theme.of(context).colorScheme.primary;
       case 'message':
         return Colors.blue;
       case 'payment':
@@ -50,7 +51,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
-        backgroundColor: const Color(0xFF9E72C3),
         actions: [
           TextButton(
             onPressed: () async {
@@ -68,17 +68,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer,
-              Theme.of(context).colorScheme.secondaryContainer,
-            ],
-          ),
-        ),
+      body: AppGradientBackground(
         child: StreamBuilder<List<AppNotification>>(
           stream: _notificationService.getNotifications(),
           builder: (context, snapshot) {
@@ -95,23 +85,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
             final notifications = snapshot.data ?? [];
 
             if (notifications.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.notifications_off_outlined,
-                      size: 64,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No notifications yet',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                    ),
-                  ],
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: AppEmptyState(
+                    icon: Icons.notifications_off_outlined,
+                    title: 'No notifications yet',
+                    subtitle: 'You are all caught up right now',
+                  ),
                 ),
               );
             }

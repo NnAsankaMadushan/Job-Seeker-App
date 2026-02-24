@@ -2,6 +2,7 @@ import 'package:job_seeker_app/Screens/messaging_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
 import 'package:job_seeker_app/models/job_application.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class WorkerRequestsScreen extends StatefulWidget {
   final String? jobId;
@@ -20,10 +21,8 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Job Requests'),
-        backgroundColor: const Color(0xFF9E72C3).withOpacity(0.2),
       ),
-      body: Container(
-        color: const Color(0xFF9E72C3).withOpacity(0.2),
+      body: AppGradientBackground(
         child: StreamBuilder<List<JobApplication>>(
           stream: widget.jobId != null
               ? _jobService.getJobApplications(widget.jobId!)
@@ -42,32 +41,14 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
             final applications = snapshot.data ?? [];
 
             if (applications.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.inbox_outlined,
-                      size: 64,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No applications yet',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Applications will appear here',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: AppEmptyState(
+                    icon: Icons.inbox_outlined,
+                    title: 'No applications yet',
+                    subtitle: 'Applications will appear here',
+                  ),
                 ),
               );
             }
@@ -89,7 +70,7 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                           children: [
                             CircleAvatar(
                               radius: 25,
-                              backgroundColor: const Color(0xFF9E72C3).withOpacity(0.2),
+                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
                               backgroundImage: application.applicantImage != null
                                   ? NetworkImage(application.applicantImage!)
                                   : null,
@@ -99,7 +80,7 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                                           ? application.applicantName[0].toUpperCase()
                                           : '?',
                                       style: const TextStyle(
-                                        color: Color(0xFF9E72C3),
+                                        color: Colors.teal,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     )
@@ -208,7 +189,7 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                             icon: const Icon(Icons.chat_bubble_outline),
                             label: const Text('Chat'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF9E72C3),
+                              foregroundColor: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                       ],

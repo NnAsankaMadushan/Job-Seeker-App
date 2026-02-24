@@ -1,67 +1,60 @@
 // search_screen.dart
 import 'package:flutter/material.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class SearchScreen extends StatelessWidget {
   const SearchScreen({super.key});
 
+  static const _categories = [
+    'Cleaning',
+    'Gardening',
+    'Painting',
+    'Plumbing',
+    'Electrical',
+    'Moving',
+    'Delivery',
+    'Pet Care',
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer,
-              Theme.of(context).colorScheme.secondaryContainer,
-            ],
-          ),
-        ),
+      body: AppGradientBackground(
         child: SafeArea(
-          child: Column(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              // Search Bar
-              Padding(
-                padding: const EdgeInsets.all(16.0),
+              const AppSectionHeader(
+                title: 'Discover Jobs',
+                subtitle: 'Find opportunities by skill or task type',
+              ),
+              const SizedBox(height: 14),
+              AppGlassCard(
                 child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search for jobs...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
+                  decoration: const InputDecoration(
+                    hintText: 'Search for jobs, locations, providers...',
+                    prefixIcon: Icon(Icons.search_rounded),
                   ),
                 ),
               ),
-              
-              // Categories
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              const SizedBox(height: 18),
+              AppGlassCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Popular Categories',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: [
-                        _buildCategoryChip('Cleaning'),
-                        _buildCategoryChip('Gardening'),
-                        _buildCategoryChip('Painting'),
-                        _buildCategoryChip('Plumbing'),
-                        _buildCategoryChip('Electrical'),
-                        _buildCategoryChip('Moving'),
-                      ],
+                      children: _categories
+                          .map((category) => _buildCategoryChip(context, category))
+                          .toList(),
                     ),
                   ],
                 ),
@@ -73,11 +66,17 @@ class SearchScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryChip(String label) {
-    return Chip(
+  Widget _buildCategoryChip(BuildContext context, String label) {
+    return ActionChip(
       label: Text(label),
-      backgroundColor: const Color(0xFF9E72C3).withOpacity(0.2),
-      labelStyle: const TextStyle(color: Color(0xFF9E72C3)),
+      avatar: Icon(
+        Icons.trending_up_rounded,
+        color: Theme.of(context).colorScheme.primary,
+        size: 16,
+      ),
+      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+      labelStyle: TextStyle(color: Theme.of(context).colorScheme.primary),
+      onPressed: () {},
     );
   }
 }

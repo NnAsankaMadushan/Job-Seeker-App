@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 import 'package:job_seeker_app/models/job.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'messaging_screen.dart';
 
 class AvailableDutiesScreen extends StatefulWidget {
@@ -111,7 +112,7 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF9E72C3),
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
             child: const Text('Submit Application'),
           ),
@@ -125,20 +126,8 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Available Jobs'),
-        backgroundColor: const Color(0xFF9E72C3).withOpacity(0.2),
-        elevation: 0,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer,
-              Theme.of(context).colorScheme.secondaryContainer,
-            ],
-          ),
-        ),
+      body: AppGradientBackground(
         child: StreamBuilder<List<Job>>(
           stream: _jobService.getAvailableJobs(),
           builder: (context, snapshot) {
@@ -155,32 +144,14 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
             final jobs = snapshot.data ?? [];
 
             if (jobs.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.work_off_outlined,
-                      size: 64,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No available jobs',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Check back later for new opportunities',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: AppEmptyState(
+                    icon: Icons.work_off_outlined,
+                    title: 'No available jobs',
+                    subtitle: 'Check back later for new opportunities',
+                  ),
                 ),
               );
             }
@@ -218,7 +189,7 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF9E72C3).withOpacity(0.1),
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(15),
                           topRight: Radius.circular(15),
@@ -246,7 +217,7 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                                   ? Colors.orange
                                   : (hasApplied
                                       ? Colors.green
-                                      : const Color(0xFF9E72C3)),
+                                      : Theme.of(context).colorScheme.primary),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -271,9 +242,9 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                           // Provider name
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.person_outline,
-                                color: Color(0xFF9E72C3),
+                                color: Theme.of(context).colorScheme.primary,
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
@@ -289,9 +260,9 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                           // Location
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.location_on_outlined,
-                                color: Color(0xFF9E72C3),
+                                color: Theme.of(context).colorScheme.primary,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
@@ -305,9 +276,9 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                           // Date
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.calendar_today_outlined,
-                                color: Color(0xFF9E72C3),
+                                color: Theme.of(context).colorScheme.primary,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
@@ -321,9 +292,9 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                           // Price
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.attach_money_outlined,
-                                color: Color(0xFF9E72C3),
+                                color: Theme.of(context).colorScheme.primary,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
@@ -358,7 +329,7 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                                         ? Colors.orange
                                         : (hasApplied
                                             ? Colors.grey
-                                            : const Color(0xFF9E72C3)),
+                                            : Theme.of(context).colorScheme.primary),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 12),
@@ -395,9 +366,9 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.chat_outlined,
-                                  color: Color(0xFF9E72C3),
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                             ],
@@ -416,7 +387,6 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
-        backgroundColor: const Color(0xFF9E72C3),
         child: const Icon(Icons.filter_list),
       ).animate().scale(),
     );

@@ -5,6 +5,8 @@ import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import 'package:job_seeker_app/services/cloudinary_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/theme/app_theme.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -103,7 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Profile Picture',
-            toolbarColor: const Color(0xFF9E72C3),
+            toolbarColor: AppTheme.primary,
             toolbarWidgetColor: Colors.white,
             initAspectRatio: CropAspectRatioPreset.square,
             lockAspectRatio: true,
@@ -143,8 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF9E72C3),
+        title: const Text('Profile'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -170,139 +171,131 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Container(
-          constraints: BoxConstraints(
-            minHeight: MediaQuery.of(context).size.height - AppBar().preferredSize.height,
-          ),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.primaryContainer,
-                Theme.of(context).colorScheme.secondaryContainer,
-              ],
+        child: AppGradientBackground(
+          child: Container(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height - AppBar().preferredSize.height,
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: const Color(0xFF9E72C3),
-                          backgroundImage: _imageFile != null
-                              ? FileImage(_imageFile!)
-                              : _currentProfileImageUrl != null
-                                  ? NetworkImage(_currentProfileImageUrl!)
-                                  : null,
-                          child: _imageFile == null && _currentProfileImageUrl == null
-                              ? const Icon(Icons.person, size: 50, color: Colors.white)
-                              : null,
-                        ),
-                        if (_isEditing)
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 20,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            backgroundImage: _imageFile != null
+                                ? FileImage(_imageFile!)
+                                : _currentProfileImageUrl != null
+                                    ? NetworkImage(_currentProfileImageUrl!)
+                                    : null,
+                            child: _imageFile == null && _currentProfileImageUrl == null
+                                ? const Icon(Icons.person, size: 50, color: Colors.white)
+                                : null,
+                          ),
+                          if (_isEditing)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ).animate().scale().fadeIn(),
-                  const SizedBox(height: 24),
-                  _buildTextField(
-                    controller: _nameController,
-                    label: 'Full Name',
-                    icon: Icons.person_outline,
-                    enabled: _isEditing,
-                  ),
-                  _buildTextField(
-                    controller: _emailController,
-                    label: 'Email',
-                    icon: Icons.email_outlined,
-                    enabled: _isEditing,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  _buildTextField(
-                    controller: _phoneController,
-                    label: 'Phone Number',
-                    icon: Icons.phone_outlined,
-                    enabled: _isEditing,
-                    keyboardType: TextInputType.phone,
-                  ),
-                  if (_isEditing)
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Gender',
-                        prefixIcon: Icon(Icons.people_outline),
+                        ],
                       ),
-                      value: _selectedGender,
-                      items: _genderOptions.map((String gender) {
-                        return DropdownMenuItem(
-                          value: gender,
-                          child: Text(gender),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() => _selectedGender = newValue);
-                      },
-                    )
-                  else
+                    ).animate().scale().fadeIn(),
+                    const SizedBox(height: 24),
                     _buildTextField(
-                      controller: TextEditingController(text: _selectedGender),
-                      label: 'Gender',
-                      icon: Icons.people_outline,
-                      enabled: false,
+                      controller: _nameController,
+                      label: 'Full Name',
+                      icon: Icons.person_outline,
+                      enabled: _isEditing,
                     ),
-                  GestureDetector(
-                    onTap: () => _selectDate(context),
-                    child: AbsorbPointer(
-                      child: TextFormField(
+                    _buildTextField(
+                      controller: _emailController,
+                      label: 'Email',
+                      icon: Icons.email_outlined,
+                      enabled: _isEditing,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    _buildTextField(
+                      controller: _phoneController,
+                      label: 'Phone Number',
+                      icon: Icons.phone_outlined,
+                      enabled: _isEditing,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    if (_isEditing)
+                      DropdownButtonFormField<String>(
                         decoration: const InputDecoration(
-                          labelText: 'Date of Birth',
-                          prefixIcon: Icon(Icons.calendar_today),
+                          labelText: 'Gender',
+                          prefixIcon: Icon(Icons.people_outline),
                         ),
-                        enabled: _isEditing,
-                        controller: TextEditingController(
-                          text: _selectedDate != null
-                              ? "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}"
-                              : "",
+                        value: _selectedGender,
+                        items: _genderOptions.map((String gender) {
+                          return DropdownMenuItem(
+                            value: gender,
+                            child: Text(gender),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() => _selectedGender = newValue);
+                        },
+                      )
+                    else
+                      _buildTextField(
+                        controller: TextEditingController(text: _selectedGender),
+                        label: 'Gender',
+                        icon: Icons.people_outline,
+                        enabled: false,
+                      ),
+                    GestureDetector(
+                      onTap: () => _selectDate(context),
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Date of Birth',
+                            prefixIcon: Icon(Icons.calendar_today),
+                          ),
+                          enabled: _isEditing,
+                          controller: TextEditingController(
+                            text: _selectedDate != null
+                                ? "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}"
+                                : "",
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  _buildTextField(
-                    controller: _addressController,
-                    label: 'Address',
-                    icon: Icons.home_outlined,
-                    enabled: _isEditing,
-                    maxLines: 2,
-                  ),
-                  _buildTextField(
-                    controller: _locationController,
-                    label: 'Location',
-                    icon: Icons.location_on_outlined,
-                    enabled: _isEditing,
-                  ),
-                ],
-              ).animate().fadeIn(),
+                    _buildTextField(
+                      controller: _addressController,
+                      label: 'Address',
+                      icon: Icons.home_outlined,
+                      enabled: _isEditing,
+                      maxLines: 2,
+                    ),
+                    _buildTextField(
+                      controller: _locationController,
+                      label: 'Location',
+                      icon: Icons.location_on_outlined,
+                      enabled: _isEditing,
+                    ),
+                  ],
+                ).animate().fadeIn(),
+              ),
             ),
           ),
         ),

@@ -9,6 +9,8 @@ import 'home_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:job_seeker_app/services/cloudinary_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/theme/app_theme.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String email;
@@ -103,7 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Profile Picture',
-            toolbarColor: const Color(0xFF9E72C3),
+            toolbarColor: AppTheme.primary,
             toolbarWidgetColor: Colors.white,
             initAspectRatio: CropAspectRatioPreset.square,
             lockAspectRatio: true,
@@ -140,224 +142,239 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register',
-        style: TextStyle(color: Colors.white),),
-        backgroundColor: Color(0xFF9E72C3).withOpacity(0.2),
-      ),
-      body: SizedBox.expand(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.primaryContainer,
-                Theme.of(context).colorScheme.secondaryContainer,
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Color.fromARGB(255, 161, 139, 179),
-                            backgroundImage: _imageFile != null
-                                ? FileImage(_imageFile!)
-                                : null,
-                            child: _imageFile == null
-                                ? const Icon(Icons.person_add, size: 50)
-                                : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 20,
-                              ),
+      body: AppGradientBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        ),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Complete Profile',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  AppGlassCard(
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.16),
+                                backgroundImage: _imageFile != null
+                                    ? FileImage(_imageFile!)
+                                    : null,
+                                child: _imageFile == null
+                                    ? Icon(
+                                        Icons.person_add_alt_1_rounded,
+                                        size: 50,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      )
+                                    : null,
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ).animate().scale().fadeIn(),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your name';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn().slideX(),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 200.ms).slideX(),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _phoneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone Number',
-                        prefixIcon: Icon(Icons.phone_outlined),
-                      ),
-                      keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your phone number';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 300.ms).slideX(),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Gender',
-                        prefixIcon: Icon(Icons.people_outline),
-                      ),
-                      value: _selectedGender,
-                      hint: const Text('Select Gender'),
-                      items: _genderOptions.map((String gender) {
-                        return DropdownMenuItem(
-                          value: gender,
-                          child: Text(gender),
-                        );
-                      }).toList(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select your gender';
-                        }
-                        return null;
-                      },
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedGender = newValue;
-                        });
-                      },
-                    ).animate().fadeIn(delay: 400.ms).slideX(),
-                    const SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: () => _selectDate(context),
-                      child: AbsorbPointer(
-                        child: TextFormField(
+                        ).animate().scale().fadeIn(),
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          controller: _nameController,
                           decoration: const InputDecoration(
-                            labelText: 'Date of Birth',
-                            prefixIcon: Icon(Icons.calendar_today),
+                            labelText: 'Full Name',
+                            prefixIcon: Icon(Icons.person_outline),
                           ),
                           validator: (value) {
-                            if (_selectedDate == null) {
-                              return 'Please select your date of birth';
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your name';
                             }
                             return null;
                           },
-                          controller: TextEditingController(
-                            text: _selectedDate != null
-                                ? "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}"
-                                : "",
+                        ).animate().fadeIn().slideX(),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email_outlined),
                           ),
-                        ),
-                      ),
-                    ).animate().fadeIn(delay: 500.ms).slideX(),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _addressController,
-                      decoration: const InputDecoration(
-                        labelText: 'Address',
-                        prefixIcon: Icon(Icons.home_outlined),
-                      ),
-                      maxLines: 2,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your address';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 600.ms).slideX(),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _locationController,
-                      decoration: const InputDecoration(
-                        labelText: 'Location',
-                        prefixIcon: Icon(Icons.location_on_outlined),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your location';
-                        }
-                        return null;
-                      },
-                    ).animate().fadeIn(delay: 700.ms).slideX(),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'User Type',
-                        prefixIcon: Icon(Icons.work_outline),
-                      ),
-                      value: _selectedUserType,
-                      hint: const Text('Select User Type'),
-                      items: _userTypeOptions.map((String type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        );
-                      }).toList(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select user type';
-                        }
-                        return null;
-                      },
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedUserType = newValue;
-                        });
-                      },
-                    ).animate().fadeIn(delay: 800.ms).slideX(),
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleRegister,
-                        child: _isLoading
-                            ? const CircularProgressIndicator()
-                            : const Text('Register'),
-                      ),
-                    ).animate().fadeIn(delay: 1000.ms).slideY(),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your email';
+                            }
+                            return null;
+                          },
+                        ).animate().fadeIn(delay: 200.ms).slideX(),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _phoneController,
+                          decoration: const InputDecoration(
+                            labelText: 'Phone Number',
+                            prefixIcon: Icon(Icons.phone_outlined),
+                          ),
+                          keyboardType: TextInputType.phone,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your phone number';
+                            }
+                            return null;
+                          },
+                        ).animate().fadeIn(delay: 280.ms).slideX(),
+                        const SizedBox(height: 14),
+                        DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            labelText: 'Gender',
+                            prefixIcon: Icon(Icons.people_outline),
+                          ),
+                          value: _selectedGender,
+                          hint: const Text('Select Gender'),
+                          items: _genderOptions.map((String gender) {
+                            return DropdownMenuItem(
+                              value: gender,
+                              child: Text(gender),
+                            );
+                          }).toList(),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select your gender';
+                            }
+                            return null;
+                          },
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedGender = newValue;
+                            });
+                          },
+                        ).animate().fadeIn(delay: 360.ms).slideX(),
+                        const SizedBox(height: 14),
+                        GestureDetector(
+                          onTap: () => _selectDate(context),
+                          child: AbsorbPointer(
+                            child: TextFormField(
+                              decoration: const InputDecoration(
+                                labelText: 'Date of Birth',
+                                prefixIcon: Icon(Icons.calendar_today_outlined),
+                              ),
+                              validator: (value) {
+                                if (_selectedDate == null) {
+                                  return 'Please select your date of birth';
+                                }
+                                return null;
+                              },
+                              controller: TextEditingController(
+                                text: _selectedDate != null
+                                    ? "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}"
+                                    : "",
+                              ),
+                            ),
+                          ),
+                        ).animate().fadeIn(delay: 460.ms).slideX(),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _addressController,
+                          decoration: const InputDecoration(
+                            labelText: 'Address',
+                            prefixIcon: Icon(Icons.home_outlined),
+                          ),
+                          maxLines: 2,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your address';
+                            }
+                            return null;
+                          },
+                        ).animate().fadeIn(delay: 540.ms).slideX(),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _locationController,
+                          decoration: const InputDecoration(
+                            labelText: 'Location',
+                            prefixIcon: Icon(Icons.location_on_outlined),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your location';
+                            }
+                            return null;
+                          },
+                        ).animate().fadeIn(delay: 620.ms).slideX(),
+                        const SizedBox(height: 14),
+                        DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            labelText: 'User Type',
+                            prefixIcon: Icon(Icons.work_outline),
+                          ),
+                          value: _selectedUserType,
+                          hint: const Text('Select User Type'),
+                          items: _userTypeOptions.map((String type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            );
+                          }).toList(),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select user type';
+                            }
+                            return null;
+                          },
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedUserType = newValue;
+                            });
+                          },
+                        ).animate().fadeIn(delay: 700.ms).slideX(),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleRegister,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Text('Create Account'),
+                          ),
+                        ).animate().fadeIn(delay: 860.ms).slideY(),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

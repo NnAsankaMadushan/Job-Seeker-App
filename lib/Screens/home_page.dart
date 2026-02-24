@@ -9,8 +9,8 @@ import 'package:job_seeker_app/services/firebase_chat_service.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
 import 'package:job_seeker_app/services/firebase_notification_service.dart';
 import 'package:job_seeker_app/models/user.dart' as app_user;
-import 'package:job_seeker_app/models/message.dart';
 import 'package:job_seeker_app/models/job.dart' as JobModel;
+import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'profile_screen.dart';
 import 'available_duties_screen.dart';
 import 'post_job_screen.dart';
@@ -39,25 +39,14 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer,
-              Theme.of(context).colorScheme.secondaryContainer,
-            ],
-          ),
-        ),
-        // Show the selected screen based on bottom navigation index
-        child: _selectedIndex == 0
-            ? _screens[_selectedIndex]
-            : AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: _screens[_selectedIndex],
-              ),
-      ),
+      body: _selectedIndex == 0
+          ? const AppGradientBackground(
+              child: _HomeContent(),
+            )
+          : AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _screens[_selectedIndex],
+            ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
@@ -111,14 +100,13 @@ class _HomeContentState extends State<_HomeContent> {
   int _unreadNotificationCount = 0;
   bool _isLoading = true;
   List<JobModel.Job> _recentJobs = [];
-  List<Conversation> _recentConversations = [];
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
     _loadUnreadCounts();
-    _loadRecentActivities();
+    _loadRecentJobs();
   }
 
   Future<void> _loadUserData() async {
@@ -158,23 +146,12 @@ class _HomeContentState extends State<_HomeContent> {
     });
   }
 
-  Future<void> _loadRecentActivities() async {
-    // Load recent jobs
+  Future<void> _loadRecentJobs() async {
     final jobService = FirebaseJobService();
     jobService.getAvailableJobs().listen((jobs) {
       if (mounted) {
         setState(() {
           _recentJobs = jobs.take(3).toList().cast<JobModel.Job>();
-        });
-      }
-    });
-
-    // Load recent conversations
-    final chatService = FirebaseChatService();
-    chatService.getConversations().listen((conversations) {
-      if (mounted) {
-        setState(() {
-          _recentConversations = conversations.take(2).toList();
         });
       }
     });
@@ -205,7 +182,7 @@ class _HomeContentState extends State<_HomeContent> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: const Color(0xFF9E72C3),
+                            color: Theme.of(context).colorScheme.primary,
                             width: 2,
                           ),
                         ),
@@ -216,9 +193,9 @@ class _HomeContentState extends State<_HomeContent> {
                                   _currentUser!.profileImage!,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
-                                    return const CircleAvatar(
-                                      backgroundColor: Color(0xFF9E72C3),
-                                      child: Icon(
+                                    return CircleAvatar(
+                                      backgroundColor: Theme.of(context).colorScheme.primary,
+                                      child: const Icon(
                                         Icons.person,
                                         color: Colors.white,
                                       ),
@@ -226,9 +203,9 @@ class _HomeContentState extends State<_HomeContent> {
                                   },
                                 ),
                               )
-                            : const CircleAvatar(
-                                backgroundColor: Color(0xFF9E72C3),
-                                child: Icon(
+                            : CircleAvatar(
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                child: const Icon(
                                   Icons.person,
                                   color: Colors.white,
                                 ),
@@ -350,7 +327,7 @@ class _HomeContentState extends State<_HomeContent> {
                   Text(
                     'Quick Actions',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -365,7 +342,7 @@ class _HomeContentState extends State<_HomeContent> {
                         context,
                         title: 'Post a Job',
                         icon: Icons.add_task_outlined,
-                        color: const Color(0xFF9E72C3),
+                        color: Theme.of(context).colorScheme.primary,
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const PostJobScreen()),
@@ -375,7 +352,7 @@ class _HomeContentState extends State<_HomeContent> {
                         context,
                         title: 'Available Jobs',
                         icon: Icons.work_outline,
-                        color: Colors.blue,
+                        color: Theme.of(context).colorScheme.secondary,
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const AvailableDutiesScreen()),
@@ -385,7 +362,7 @@ class _HomeContentState extends State<_HomeContent> {
                         context,
                         title: 'My Jobs',
                         icon: Icons.assignment_outlined,
-                        color: Colors.orange,
+                        color: Theme.of(context).colorScheme.tertiary,
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const MyJobsScreen())
@@ -395,7 +372,7 @@ class _HomeContentState extends State<_HomeContent> {
                         context,
                         title: 'Requests',
                         icon: Icons.request_page_outlined,
-                        color: Colors.green,
+                        color: const Color(0xFF059669),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const WorkerRequestsScreen()),
@@ -406,140 +383,82 @@ class _HomeContentState extends State<_HomeContent> {
 
                   const SizedBox(height: 24),
 
-                  // Recent Activities Section - Now using real Firebase data
+                  // Latest Job Openings section
                   Text(
-                    'Recent Activities',
+                    'Latest Job Openings',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Show real data or empty state
-                  if (_recentJobs.isEmpty && _recentConversations.isEmpty && !_isLoading)
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Center(
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.inbox_outlined,
-                                size: 48,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'No recent activities',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Post a job or start messaging to see activities here',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.grey[500],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                  if (_recentJobs.isEmpty && !_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: AppEmptyState(
+                        icon: Icons.work_outline,
+                        title: 'No openings yet',
+                        subtitle: 'New jobs will appear here as soon as they are posted',
                       ),
                     )
-                  else
+                  else ...[
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _recentJobs.length + _recentConversations.length,
+                      itemCount: _recentJobs.length,
                       itemBuilder: (context, index) {
-                        // Show jobs first, then messages
-                        if (index < _recentJobs.length) {
-                          final job = _recentJobs[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        final job = _recentJobs[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
+                              child: Icon(
+                                Icons.work_outline,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF9E72C3).withOpacity(0.2),
-                                child: const Icon(
-                                  Icons.work_outline,
-                                  color: Color(0xFF9E72C3),
+                            title: Text(job.title),
+                            subtitle: Text(
+                              '${job.location} • LKR ${job.budget.toStringAsFixed(0)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Colors.grey[400],
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AvailableDutiesScreen(),
                                 ),
-                              ),
-                              title: Text('New job: ${job.title}'),
-                              subtitle: Text(job.location),
-                              trailing: Icon(
-                                Icons.chevron_right,
-                                color: Colors.grey[400],
-                              ),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const AvailableDutiesScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ).animate().fadeIn(delay: (50 * index).ms).slideX();
-                        } else {
-                          final convIndex = index - _recentJobs.length;
-                          final conversation = _recentConversations[convIndex];
-                          final currentUserId = FirebaseAuthService().currentUser?.uid ?? '';
-                          final isLastMessageFromCurrentUser = conversation.lastMessage?.senderId == currentUserId;
-
-                          // Determine title and subtitle based on who sent the message
-                          final messageTitle = isLastMessageFromCurrentUser
-                              ? 'You messaged ${conversation.userName}'
-                              : 'Message from ${conversation.userName}';
-                          final messageSubtitle = conversation.lastMessage?.content ?? 'No message';
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF9E72C3).withOpacity(0.2),
-                                child: const Icon(
-                                  Icons.message_outlined,
-                                  color: Color(0xFF9E72C3),
-                                ),
-                              ),
-                              title: Text(messageTitle),
-                              subtitle: Text(
-                                messageSubtitle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              trailing: Icon(
-                                Icons.chevron_right,
-                                color: Colors.grey[400],
-                              ),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => HomeScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ).animate().fadeIn(delay: (50 * index).ms).slideX();
-                        }
+                              );
+                            },
+                          ),
+                        ).animate().fadeIn(delay: (50 * index).ms).slideX();
                       },
                     ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AvailableDutiesScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.open_in_new),
+                        label: const Text('See all jobs'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

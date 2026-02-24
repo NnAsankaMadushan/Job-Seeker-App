@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:job_seeker_app/models/job.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
 import 'package:job_seeker_app/Screens/post_job_screen.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class JobsScreen extends StatefulWidget {
   const JobsScreen({super.key});
@@ -17,17 +18,7 @@ class _JobsScreenState extends State<JobsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primaryContainer,
-              Theme.of(context).colorScheme.secondaryContainer,
-            ],
-          ),
-        ),
+      body: AppGradientBackground(
         child: SafeArea(
           child: Column(
             children: [
@@ -118,7 +109,7 @@ class _JobsScreenState extends State<JobsScreen> {
                                   children: [
                                     const Icon(
                                       Icons.work_outline,
-                                      color: Color(0xFF9E72C3),
+                                      color: Colors.teal,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
@@ -168,7 +159,6 @@ class _JobsScreenState extends State<JobsScreen> {
             MaterialPageRoute(builder: (_) => const PostJobScreen()),
           );
         },
-        backgroundColor: const Color(0xFF9E72C3),
         child: const Icon(Icons.add),
       ),
     );
@@ -192,7 +182,7 @@ class _JobsScreenState extends State<JobsScreen> {
       case 'available':
         return Colors.green;
       case 'in_progress':
-        return const Color(0xFF9E72C3);
+        return Theme.of(context).colorScheme.primary;
       case 'completed':
         return Colors.blue;
       default:
