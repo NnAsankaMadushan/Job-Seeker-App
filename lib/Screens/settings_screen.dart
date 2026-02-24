@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:job_seeker_app/Screens/appearance_screen.dart';
 import 'package:job_seeker_app/Screens/Login_screen.dart';
+import 'package:job_seeker_app/Screens/notification_settings_screen.dart';
+import 'package:job_seeker_app/Screens/privacy_security_screen.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 
@@ -12,6 +15,24 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoggingOut = false;
+
+  void _openNotifications() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+    );
+  }
+
+  void _openPrivacySecurity() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
+    );
+  }
+
+  void _openAppearance() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AppearanceScreen()),
+    );
+  }
 
   Future<void> _handleLogout() async {
     final shouldLogout = await showDialog<bool>(
@@ -86,7 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: const Text('Notifications'),
                       subtitle: const Text('Manage push and in-app alerts'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () {},
+                      onTap: _openNotifications,
                     ),
                     const Divider(height: 1),
                     ListTile(
@@ -97,7 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: const Text('Privacy & Security'),
                       subtitle: const Text('Update lock and account access settings'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () {},
+                      onTap: _openPrivacySecurity,
                     ),
                     const Divider(height: 1),
                     ListTile(
@@ -108,7 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: const Text('Appearance'),
                       subtitle: const Text('Customize visual preferences'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () {},
+                      onTap: _openAppearance,
                     ),
                   ],
                 ),

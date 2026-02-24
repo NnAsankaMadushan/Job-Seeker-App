@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:job_seeker_app/Screens/Login_screen.dart';
+import 'package:job_seeker_app/Screens/home_page.dart';
+import 'package:job_seeker_app/services/app_settings_service.dart';
+import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
 import 'package:local_auth_darwin/local_auth_darwin.dart';
-import 'package:job_seeker_app/Screens/Login_screen.dart';
-import 'package:job_seeker_app/Screens/home_page.dart';
-import 'package:job_seeker_app/services/firebase_auth_service.dart';
-import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class AppLockScreen extends StatefulWidget {
   const AppLockScreen({super.key});
@@ -18,10 +19,14 @@ class AppLockScreen extends StatefulWidget {
 
 class _AppLockScreenState extends State<AppLockScreen> {
   final LocalAuthentication _localAuthentication = LocalAuthentication();
+  final TextEditingController _credentialController = TextEditingController();
 
   bool _canUseDeviceAuth = false;
+  bool _requiresAppCredential = false;
+  bool _isPinCredential = true;
   bool _isAuthenticating = false;
   String _statusMessage = 'Preparing secure unlock...';
+  String? _savedCredential;
   BiometricType? _preferredBiometric;
   List<BiometricType> _availableBiometrics = const [];
   List<String> _availableMethods = const [];
@@ -34,6 +39,12 @@ class _AppLockScreenState extends State<AppLockScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _credentialController.dispose();
+    super.dispose();
+  }
+
   Future<void> _setupAndAuthenticate() async {
     final authService = FirebaseAuthService();
     if (authService.currentUser == null) {
@@ -42,6 +53,32 @@ class _AppLockScreenState extends State<AppLockScreen> {
     }
 
     try {
+      final appSettings = AppSettingsService.instance;
+      final appLockEnabled = await appSettings.isAppLockEnabled();
+
+      if (!mounted) return;
+
+      if (!appLockEnabled) {
+        _navigateToHome();
+        return;
+      }
+
+      final appCredential = await appSettings.getAppCredential();
+
+      if (!mounted) return;
+
+      if (appCredential != null) {
+        setState(() {
+          _requiresAppCredential = true;
+          _isPinCredential = appCredential.isPin;
+          _savedCredential = appCredential.secret;
+          _statusMessage = appCredential.isPin
+              ? 'Enter your app PIN to unlock.'
+              : 'Enter your app password to unlock.';
+        });
+        return;
+      }
+
       final isDeviceSupported = await _localAuthentication.isDeviceSupported();
       final availableBiometrics = await _localAuthentication.getAvailableBiometrics();
 
@@ -66,8 +103,8 @@ class _AppLockScreenState extends State<AppLockScreen> {
                 availableMethods.first == 'PIN / Pattern / Password'
             ? 'This device face unlock is not available to apps. Use PIN / Pattern / Password.'
             : availableMethods.isEmpty
-            ? 'Use your screen lock to continue'
-            : 'Use ${availableMethods.join(' / ')} to continue';
+                ? 'Use your screen lock to continue'
+                : 'Use ${availableMethods.join(' / ')} to continue';
       });
 
       await _authenticate();
@@ -126,6 +163,9 @@ class _AppLockScreenState extends State<AppLockScreen> {
   }
 
   String _getAuthMethodLabel() {
+    if (_requiresAppCredential) {
+      return _isPinCredential ? 'App PIN' : 'App password';
+    }
     if (_availableMethods.isEmpty) {
       return 'your screen lock';
     }
@@ -133,6 +173,9 @@ class _AppLockScreenState extends State<AppLockScreen> {
   }
 
   IconData _getAuthIcon() {
+    if (_requiresAppCredential) {
+      return _isPinCredential ? Icons.pin_outlined : Icons.password_outlined;
+    }
     if (_availableBiometrics.contains(BiometricType.face) &&
         _availableBiometrics.contains(BiometricType.fingerprint)) {
       return Icons.shield_outlined;
@@ -223,6 +266,31 @@ class _AppLockScreenState extends State<AppLockScreen> {
     });
   }
 
+  void _verifyAppCredential() {
+    final enteredValue = _isPinCredential
+        ? _credentialController.text.trim()
+        : _credentialController.text;
+
+    if (enteredValue.isEmpty) {
+      setState(() {
+        _statusMessage = _isPinCredential
+            ? 'Enter your app PIN to continue.'
+            : 'Enter your app password to continue.';
+      });
+      return;
+    }
+
+    if (enteredValue == _savedCredential) {
+      _navigateToHome();
+      return;
+    }
+
+    setState(() {
+      _credentialController.clear();
+      _statusMessage = _isPinCredential ? 'Incorrect PIN. Try again.' : 'Incorrect password. Try again.';
+    });
+  }
+
   void _navigateToHome() {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const HomePage()),
@@ -275,26 +343,55 @@ class _AppLockScreenState extends State<AppLockScreen> {
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
-                    const SizedBox(height: 8),
-                    if (_availableMethods.isNotEmpty)
-                      Text(
-                        'Available: ${_availableMethods.join('  •  ')}',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                    if (_requiresAppCredential) ...[
+                      const SizedBox(height: 18),
+                      TextField(
+                        controller: _credentialController,
+                        obscureText: true,
+                        keyboardType:
+                            _isPinCredential ? TextInputType.number : TextInputType.visiblePassword,
+                        inputFormatters: _isPinCredential
+                            ? [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(6),
+                              ]
+                            : null,
+                        decoration: InputDecoration(
+                          labelText: _isPinCredential ? 'App PIN' : 'App Password',
+                        ),
+                        onSubmitted: (_) => _verifyAppCredential(),
                       ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: _isAuthenticating
-                          ? const Center(child: CircularProgressIndicator())
-                          : ElevatedButton.icon(
-                              onPressed: _authenticate,
-                              icon: const Icon(Icons.lock_open_rounded),
-                              label: Text('Unlock with ${_getAuthMethodLabel()}'),
-                            ),
-                    ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _verifyAppCredential,
+                          icon: const Icon(Icons.lock_open_rounded),
+                          label: Text('Unlock with ${_getAuthMethodLabel()}'),
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 8),
+                      if (_availableMethods.isNotEmpty)
+                        Text(
+                          'Available: ${_availableMethods.join(' | ')}',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: _isAuthenticating
+                            ? const Center(child: CircularProgressIndicator())
+                            : ElevatedButton.icon(
+                                onPressed: _authenticate,
+                                icon: const Icon(Icons.lock_open_rounded),
+                                label: Text('Unlock with ${_getAuthMethodLabel()}'),
+                              ),
+                      ),
+                    ],
                   ],
                 ),
               ),

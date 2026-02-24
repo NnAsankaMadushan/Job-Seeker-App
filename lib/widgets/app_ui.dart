@@ -13,14 +13,21 @@ class AppGradientBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundTop = isDark ? const Color(0xFF020617) : AppTheme.backgroundTop;
+    final backgroundBottom = isDark ? const Color(0xFF0F172A) : AppTheme.backgroundBottom;
+    final topBlobColor = theme.colorScheme.primary.withOpacity(isDark ? 0.22 : 0.16);
+    final bottomBlobColor = theme.colorScheme.secondary.withOpacity(isDark ? 0.18 : 0.12);
+
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppTheme.backgroundTop,
-            AppTheme.backgroundBottom,
+            backgroundTop,
+            backgroundBottom,
           ],
         ),
       ),
@@ -31,7 +38,7 @@ class AppGradientBackground extends StatelessWidget {
             right: -70,
             child: _BlurBlob(
               size: 260,
-              color: AppTheme.primary.withOpacity(0.16),
+              color: topBlobColor,
             ),
           ),
           Positioned(
@@ -39,7 +46,7 @@ class AppGradientBackground extends StatelessWidget {
             left: -50,
             child: _BlurBlob(
               size: 220,
-              color: AppTheme.secondary.withOpacity(0.12),
+              color: bottomBlobColor,
             ),
           ),
           child,
@@ -61,6 +68,15 @@ class AppGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surfaceColor = isDark
+        ? theme.colorScheme.surface.withOpacity(0.62)
+        : Colors.white.withOpacity(0.72);
+    final borderColor = isDark
+        ? theme.colorScheme.outlineVariant.withOpacity(0.55)
+        : Colors.white.withOpacity(0.8);
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
@@ -69,9 +85,9 @@ class AppGlassCard extends StatelessWidget {
           padding: padding,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: Colors.white.withOpacity(0.72),
+            color: surfaceColor,
             border: Border.all(
-              color: Colors.white.withOpacity(0.8),
+              color: borderColor,
             ),
           ),
           child: child,

@@ -159,6 +159,15 @@ class _HomeContentState extends State<_HomeContent> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final topActionBackground = isDark
+        ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.85)
+        : Colors.white;
+    final topActionIconColor = isDark
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurfaceVariant;
+
     return SafeArea(
       child: Column(
         children: [
@@ -245,9 +254,12 @@ class _HomeContentState extends State<_HomeContent> {
                           MaterialPageRoute(builder: (_) => HomeScreen()),
                         );
                       },
-                      icon: const Icon(Icons.message_outlined),
+                      icon: Icon(
+                        Icons.message_outlined,
+                        color: topActionIconColor,
+                      ),
                       style: IconButton.styleFrom(
-                        backgroundColor: Colors.white,
+                        backgroundColor: topActionBackground,
                         padding: const EdgeInsets.all(12),
                       ),
                     ),
@@ -284,9 +296,12 @@ class _HomeContentState extends State<_HomeContent> {
                           MaterialPageRoute(builder: (_) => const NotificationScreen()),
                         );
                       },
-                      icon: const Icon(Icons.notifications_outlined),
+                      icon: Icon(
+                        Icons.notifications_outlined,
+                        color: topActionIconColor,
+                      ),
                       style: IconButton.styleFrom(
-                        backgroundColor: Colors.white,
+                        backgroundColor: topActionBackground,
                         padding: const EdgeInsets.all(12),
                       ),
                     ),
