@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:job_seeker_app/models/message.dart';
+import 'package:job_seeker_app/services/message_encryption_service.dart';
 
 class FirebaseChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final MessageEncryptionService _encryptionService = MessageEncryptionService.instance;
 
   // Get conversations
   Stream<List<Conversation>> getConversations() {
@@ -37,12 +39,18 @@ class FirebaseChatService {
         // Get last message
         Message? lastMessage;
         if (data['lastMessage'] != null) {
+          final encryptedLastMessage = data['lastMessage'] as String? ?? '';
+          final decryptedLastMessage = await _encryptionService.decryptMessage(
+            encryptedText: encryptedLastMessage,
+            conversationId: doc.id,
+          );
+
           lastMessage = Message(
             id: '',
             senderId: data['lastMessageSenderId'] ?? '',
             senderName: '',
             receiverId: '',
-            content: data['lastMessage'] ?? '',
+            content: decryptedLastMessage,
             timestamp: (data['lastMessageTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
           );
         }
@@ -74,19 +82,25 @@ class FirebaseChatService {
         .collection('messages')
         .orderBy('timestamp', descending: false)
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
+        .asyncMap((snapshot) async {
+      return Future.wait(snapshot.docs.map((doc) async {
         final data = doc.data();
+        final encryptedContent = data['content'] as String? ?? '';
+        final decryptedContent = await _encryptionService.decryptMessage(
+          encryptedText: encryptedContent,
+          conversationId: conversationId,
+        );
+
         return Message(
           id: doc.id,
           senderId: data['senderId'] ?? '',
           senderName: data['senderName'] ?? '',
           receiverId: data['receiverId'] ?? '',
-          content: data['content'] ?? '',
+          content: decryptedContent,
           timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
           isRead: data['isRead'] ?? false,
         );
-      }).toList();
+      }));
     });
   }
 
@@ -105,6 +119,10 @@ class FirebaseChatService {
       }
 
       final conversationId = _getConversationId(user.uid, receiverId);
+      final encryptedContent = await _encryptionService.encryptMessage(
+        plainText: content,
+        conversationId: conversationId,
+      );
       final conversationRef = _firestore.collection('conversations').doc(
             conversationId,
           );
@@ -118,9 +136,10 @@ class FirebaseChatService {
         'senderId': user.uid,
         'senderName': senderName,
         'receiverId': receiverId,
-        'content': content,
+        'content': encryptedContent,
         'timestamp': FieldValue.serverTimestamp(),
         'isRead': false,
+        'isEncrypted': true,
       };
 
       // Ensure conversation exists before writing to the messages subcollection.
@@ -134,11 +153,12 @@ class FirebaseChatService {
       // Update conversation metadata
       await conversationRef.set({
         'participants': participants,
-        'lastMessage': content,
+        'lastMessage': encryptedContent,
         'lastMessageSenderId': user.uid,
         'lastMessageTime': FieldValue.serverTimestamp(),
         'unreadCount_${receiverId}': FieldValue.increment(1),
         'unreadCount_${user.uid}': 0, // Reset sender's unread count
+        'lastMessageEncrypted': true,
       }, SetOptions(merge: true));
 
       return {

@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function conversationPath(conversationId) {
+      return /databases/$(database)/documents/conversations/$(conversationId);
+    }
+
+    function isConversationParticipant(conversationId) {
+      return isSignedIn() &&
+          request.auth.uid in get(conversationPath(conversationId)).data.participants;
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /conversations/{conversationId} {
+      allow read: if isConversationParticipant(conversationId);
+
+      allow create: if isSignedIn() &&
+          request.resource.data.participants is list &&
+          request.resource.data.participants.size() == 2 &&
+          request.auth.uid in request.resource.data.participants;
+
+      allow update: if isConversationParticipant(conversationId);
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isConversationParticipant(conversationId);
+
+        allow create: if isConversationParticipant(conversationId) &&
+            request.resource.data.senderId == request.auth.uid &&
+            request.resource.data.receiverId in
+                get(conversationPath(conversationId)).data.participants;
+
+        allow update: if isConversationParticipant(conversationId);
+        allow delete: if false;
+      }
+    }
+  }
+}
