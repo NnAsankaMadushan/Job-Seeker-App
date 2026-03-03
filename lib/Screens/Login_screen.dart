@@ -118,7 +118,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ? const SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   )
                                 : const Text('Login'),
                           ),
@@ -142,7 +143,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         SocialLoginButtons(
                           isLoading: _isLoading,
                           onGooglePressed: _handleGoogleSignIn,
-                          onApplePressed: () => _showProviderNotConfigured('Apple'),
+                          onApplePressed: () =>
+                              _showProviderNotConfigured('Apple'),
                         ),
                       ],
                     ),
@@ -209,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _navigateToHome();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google sign-in failed: ${result['message']}')),
+        SnackBar(content: Text('${result['message']}')),
       );
     }
   }

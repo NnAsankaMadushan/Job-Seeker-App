@@ -131,7 +131,8 @@ class _SignupScreenState extends State<SignupScreen> {
                                 ? const SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   )
                                 : const Text('Continue'),
                           ),
@@ -144,7 +145,8 @@ class _SignupScreenState extends State<SignupScreen> {
                             TextButton(
                               onPressed: () => Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                MaterialPageRoute(
+                                    builder: (_) => const LoginScreen()),
                               ),
                               child: const Text('Log in'),
                             ),
@@ -153,7 +155,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         SocialLoginButtons(
                           isLoading: _isLoading,
                           onGooglePressed: _handleGoogleSignIn,
-                          onApplePressed: () => _showProviderNotConfigured('Apple'),
+                          onApplePressed: () =>
+                              _showProviderNotConfigured('Apple'),
                         ),
                       ],
                     ),
@@ -213,7 +216,7 @@ class _SignupScreenState extends State<SignupScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google sign-in failed: ${result['message']}')),
+        SnackBar(content: Text('${result['message']}')),
       );
     }
   }
