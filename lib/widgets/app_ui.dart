@@ -15,43 +15,58 @@ class AppGradientBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final backgroundTop = isDark ? const Color(0xFF020617) : AppTheme.backgroundTop;
-    final backgroundBottom = isDark ? const Color(0xFF0F172A) : AppTheme.backgroundBottom;
-    final topBlobColor = theme.colorScheme.primary.withOpacity(isDark ? 0.22 : 0.16);
-    final bottomBlobColor = theme.colorScheme.secondary.withOpacity(isDark ? 0.18 : 0.12);
+    final backgroundTop =
+        isDark ? const Color(0xFF020617) : AppTheme.backgroundTop;
+    final backgroundBottom =
+        isDark ? const Color(0xFF0F172A) : AppTheme.backgroundBottom;
+    final topBlobColor =
+        theme.colorScheme.primary.withOpacity(isDark ? 0.22 : 0.16);
+    final bottomBlobColor =
+        theme.colorScheme.secondary.withOpacity(isDark ? 0.18 : 0.12);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            backgroundTop,
-            backgroundBottom,
-          ],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -120,
-            right: -70,
-            child: _BlurBlob(
-              size: 260,
-              color: topBlobColor,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                backgroundTop,
+                backgroundBottom,
+              ],
             ),
           ),
-          Positioned(
-            bottom: -80,
-            left: -50,
-            child: _BlurBlob(
-              size: 220,
-              color: bottomBlobColor,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: constraints.hasBoundedWidth ? constraints.maxWidth : 0,
+              minHeight:
+                  constraints.hasBoundedHeight ? constraints.maxHeight : 0,
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -120,
+                  right: -70,
+                  child: _BlurBlob(
+                    size: 260,
+                    color: topBlobColor,
+                  ),
+                ),
+                Positioned(
+                  bottom: -80,
+                  left: -50,
+                  child: _BlurBlob(
+                    size: 220,
+                    color: bottomBlobColor,
+                  ),
+                ),
+                child,
+              ],
             ),
           ),
-          child,
-        ],
-      ),
+        );
+      },
     );
   }
 }
