@@ -29,9 +29,9 @@ class _HomePageState extends State<HomePage> {
 
   // List of screens to show based on bottom navigation selection
   final List<Widget> _screens = [
-    const _HomeContent(),  // Extracted home content
+    const _HomeContent(), // Extracted home content
     const SearchScreen(), // Your search screen
-    const MyJobsScreen(),   // Your jobs screen
+    const MyJobsScreen(), // Your jobs screen
     const ProfileScreen(), // Your profile screen
     const SettingsScreen(), // Settings screen
   ];
@@ -111,12 +111,19 @@ class _HomeContentState extends State<_HomeContent> {
 
   Future<void> _loadUserData() async {
     final authService = FirebaseAuthService();
-    final user = await authService.getCurrentUserData();
-    if (mounted) {
+    try {
+      final user = await authService.getCurrentUserData();
+      if (!mounted) return;
+
       setState(() {
         _currentUser = user;
-        _isLoading = false;
       });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -164,9 +171,8 @@ class _HomeContentState extends State<_HomeContent> {
     final topActionBackground = isDark
         ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.85)
         : Colors.white;
-    final topActionIconColor = isDark
-        ? theme.colorScheme.primary
-        : theme.colorScheme.onSurfaceVariant;
+    final topActionIconColor =
+        isDark ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
 
     return SafeArea(
       child: Column(
@@ -203,7 +209,8 @@ class _HomeContentState extends State<_HomeContent> {
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return CircleAvatar(
-                                      backgroundColor: Theme.of(context).colorScheme.primary,
+                                      backgroundColor:
+                                          Theme.of(context).colorScheme.primary,
                                       child: const Icon(
                                         Icons.person,
                                         color: Colors.white,
@@ -213,7 +220,8 @@ class _HomeContentState extends State<_HomeContent> {
                                 ),
                               )
                             : CircleAvatar(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
                                 child: const Icon(
                                   Icons.person,
                                   color: Colors.white,
@@ -226,17 +234,23 @@ class _HomeContentState extends State<_HomeContent> {
                         children: [
                           Text(
                             'Welcome back',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
                           ),
                           Text(
                             _isLoading
                                 ? 'Loading...'
                                 : _currentUser?.name ?? 'User',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                         ],
                       ),
@@ -274,7 +288,9 @@ class _HomeContentState extends State<_HomeContent> {
                             shape: BoxShape.circle,
                           ),
                           child: Text(
-                            _unreadMessageCount > 99 ? '99+' : '$_unreadMessageCount',
+                            _unreadMessageCount > 99
+                                ? '99+'
+                                : '$_unreadMessageCount',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -293,7 +309,8 @@ class _HomeContentState extends State<_HomeContent> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const NotificationScreen()),
                         );
                       },
                       icon: Icon(
@@ -316,7 +333,9 @@ class _HomeContentState extends State<_HomeContent> {
                             shape: BoxShape.circle,
                           ),
                           child: Text(
-                            _unreadNotificationCount > 99 ? '99+' : '$_unreadNotificationCount',
+                            _unreadNotificationCount > 99
+                                ? '99+'
+                                : '$_unreadNotificationCount',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -342,8 +361,8 @@ class _HomeContentState extends State<_HomeContent> {
                   Text(
                     'Quick Actions',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
                   const SizedBox(height: 16),
                   GridView.count(
@@ -360,7 +379,8 @@ class _HomeContentState extends State<_HomeContent> {
                         color: Theme.of(context).colorScheme.primary,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const PostJobScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const PostJobScreen()),
                         ),
                       ),
                       _buildActionCard(
@@ -370,7 +390,8 @@ class _HomeContentState extends State<_HomeContent> {
                         color: Theme.of(context).colorScheme.secondary,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const AvailableDutiesScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const AvailableDutiesScreen()),
                         ),
                       ),
                       _buildActionCard(
@@ -379,9 +400,9 @@ class _HomeContentState extends State<_HomeContent> {
                         icon: Icons.assignment_outlined,
                         color: Theme.of(context).colorScheme.tertiary,
                         onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const MyJobsScreen())
-                        ),
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const MyJobsScreen())),
                       ),
                       _buildActionCard(
                         context,
@@ -390,7 +411,8 @@ class _HomeContentState extends State<_HomeContent> {
                         color: const Color(0xFF059669),
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const WorkerRequestsScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const WorkerRequestsScreen()),
                         ),
                       ),
                     ],
@@ -402,8 +424,8 @@ class _HomeContentState extends State<_HomeContent> {
                   Text(
                     'Latest Job Openings',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
                   const SizedBox(height: 16),
 
@@ -413,7 +435,8 @@ class _HomeContentState extends State<_HomeContent> {
                       child: AppEmptyState(
                         icon: Icons.work_outline,
                         title: 'No openings yet',
-                        subtitle: 'New jobs will appear here as soon as they are posted',
+                        subtitle:
+                            'New jobs will appear here as soon as they are posted',
                       ),
                     )
                   else ...[
@@ -430,7 +453,10 @@ class _HomeContentState extends State<_HomeContent> {
                           ),
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.14),
                               child: Icon(
                                 Icons.work_outline,
                                 color: Theme.of(context).colorScheme.primary,
@@ -531,8 +557,8 @@ class _HomeContentState extends State<_HomeContent> {
                 title,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             ],
           ),

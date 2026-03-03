@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -18,7 +19,8 @@ class FirebaseAuthService {
     return _auth.authStateChanges().asyncMap((User? firebaseUser) async {
       if (firebaseUser == null) return null;
 
-      final doc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+      final doc =
+          await _firestore.collection('users').doc(firebaseUser.uid).get();
       if (doc.exists) {
         return app_user.User.fromJson({
           'id': doc.id,
@@ -42,7 +44,8 @@ class FirebaseAuthService {
   }) async {
     try {
       // Create user in Firebase Auth
-      final UserCredential credential = await _auth.createUserWithEmailAndPassword(
+      final UserCredential credential =
+          await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -101,7 +104,8 @@ class FirebaseAuthService {
       );
 
       // Get user data from Firestore
-      final doc = await _firestore.collection('users').doc(credential.user!.uid).get();
+      final doc =
+          await _firestore.collection('users').doc(credential.user!.uid).get();
 
       if (!doc.exists) {
         return {
@@ -152,7 +156,8 @@ class FirebaseAuthService {
         };
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       if (googleAuth.idToken == null) {
         return {
@@ -167,7 +172,8 @@ class FirebaseAuthService {
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
       final User? firebaseUser = userCredential.user;
 
       if (firebaseUser == null) {
@@ -179,7 +185,8 @@ class FirebaseAuthService {
 
       await _ensureUserDocument(firebaseUser);
 
-      final doc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+      final doc =
+          await _firestore.collection('users').doc(firebaseUser.uid).get();
       if (!doc.exists) {
         return {
           'success': false,
@@ -201,8 +208,8 @@ class FirebaseAuthService {
         'message': _getFirebaseAuthErrorMessage(e.code),
       };
     } on PlatformException catch (e) {
-      final isApi10 =
-          e.code == 'sign_in_failed' && (e.message?.contains('ApiException: 10') ?? false);
+      final isApi10 = e.code == 'sign_in_failed' &&
+          (e.message?.contains('ApiException: 10') ?? false);
       return {
         'success': false,
         'message': isApi10
@@ -238,7 +245,8 @@ class FirebaseAuthService {
             accessToken.tokenString,
           );
 
-          final UserCredential userCredential = await _auth.signInWithCredential(credential);
+          final UserCredential userCredential =
+              await _auth.signInWithCredential(credential);
           final User? firebaseUser = userCredential.user;
 
           if (firebaseUser == null) {
@@ -250,7 +258,8 @@ class FirebaseAuthService {
 
           await _ensureUserDocument(firebaseUser);
 
-          final doc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+          final doc =
+              await _firestore.collection('users').doc(firebaseUser.uid).get();
           if (!doc.exists) {
             return {
               'success': false,
@@ -316,13 +325,27 @@ class FirebaseAuthService {
     final user = _auth.currentUser;
     if (user == null) return null;
 
-    final doc = await _firestore.collection('users').doc(user.uid).get();
-    if (!doc.exists) return null;
+    try {
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (!doc.exists) {
+        return _firebaseUserToAppUser(user);
+      }
 
-    return app_user.User.fromJson({
-      'id': doc.id,
-      ...doc.data()!,
-    });
+      return app_user.User.fromJson({
+        'id': doc.id,
+        ...doc.data()!,
+      });
+    } on FirebaseException catch (e) {
+      debugPrint(
+        'Firestore unavailable while loading current user (${e.code}). Falling back to FirebaseAuth profile.',
+      );
+      return _firebaseUserToAppUser(user);
+    } catch (e) {
+      debugPrint(
+        'Unexpected error while loading current user. Falling back to FirebaseAuth profile: $e',
+      );
+      return _firebaseUserToAppUser(user);
+    }
   }
 
   // Update user profile
@@ -362,7 +385,9 @@ class FirebaseAuthService {
     final userDoc = await userRef.get();
 
     final fallbackName = firebaseUser.displayName?.trim();
-    final nameToUse = (fallbackName != null && fallbackName.isNotEmpty) ? fallbackName : 'User';
+    final nameToUse = (fallbackName != null && fallbackName.isNotEmpty)
+        ? fallbackName
+        : 'User';
 
     if (!userDoc.exists) {
       await userRef.set({
@@ -390,11 +415,13 @@ class FirebaseAuthService {
       updates['name'] = nameToUse;
     }
 
-    if ((currentEmail == null || currentEmail.trim().isEmpty) && firebaseUser.email != null) {
+    if ((currentEmail == null || currentEmail.trim().isEmpty) &&
+        firebaseUser.email != null) {
       updates['email'] = firebaseUser.email;
     }
 
-    if ((currentPhone == null || currentPhone.trim().isEmpty) && firebaseUser.phoneNumber != null) {
+    if ((currentPhone == null || currentPhone.trim().isEmpty) &&
+        firebaseUser.phoneNumber != null) {
       updates['phone'] = firebaseUser.phoneNumber;
     }
 
@@ -444,5 +471,35 @@ class FirebaseAuthService {
       default:
         return 'Authentication failed. Please try again.';
     }
+  }
+
+  app_user.User _firebaseUserToAppUser(User user) {
+    return app_user.User(
+      id: user.uid,
+      name: _fallbackName(user),
+      email: user.email ?? '',
+      phone: user.phoneNumber ?? '',
+      profileImage: user.photoURL,
+      userType: 'Job Seeker',
+      location: null,
+      address: null,
+    );
+  }
+
+  String _fallbackName(User user) {
+    final displayName = user.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) {
+      return displayName;
+    }
+
+    final email = user.email?.trim() ?? '';
+    if (email.contains('@')) {
+      final localPart = email.split('@').first.trim();
+      if (localPart.isNotEmpty) {
+        return localPart;
+      }
+    }
+
+    return 'User';
   }
 }
