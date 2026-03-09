@@ -5,7 +5,6 @@ import 'package:job_seeker_app/services/firebase_auth_service.dart';
 import 'package:job_seeker_app/models/message.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'messaging_screen.dart';
-import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,73 +27,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.search),
             onPressed: () {},
           ),
-          // Add profile section in AppBar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ProfileScreen(),
-                  ),
-                );
-              },
-              child: FutureBuilder(
-                future: _authService.getCurrentUserData(),
-                builder: (context, snapshot) {
-                  final user = snapshot.data;
-                  return Row(
-                    children: [
-                      // User name
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: Text(
-                          user?.name ?? 'User',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ),
-                      // Profile Picture
-                      Container(
-                        width: 35,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.primary,
-                            width: 2,
-                          ),
-                        ),
-                        child: user?.profileImage != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(50),
-                                child: Image.network(
-                                  user!.profileImage!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return CircleAvatar(
-                                      backgroundColor: Theme.of(context).colorScheme.primary,
-                                      child: const Icon(
-                                        Icons.person,
-                                        color: Colors.white,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              )
-                            : CircleAvatar(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                child: const Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              setState(() {});
+            },
           ),
         ],
       ),
@@ -229,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           builder: (_) => MessagingScreen(
                             userId: conversation.userId,
                             userName: conversation.userName,
+                            userImage: conversation.userImage,
                           ),
                         ),
                       );

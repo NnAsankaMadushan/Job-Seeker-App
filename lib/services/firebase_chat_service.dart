@@ -7,6 +7,9 @@ class FirebaseChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final MessageEncryptionService _encryptionService = MessageEncryptionService.instance;
+  
+  // Cache for sender names to optimize sending
+  final Map<String, String> _userNameCache = {};
 
   // Get conversations
   Stream<List<Conversation>> getConversations() {
@@ -128,9 +131,13 @@ class FirebaseChatService {
           );
       final participants = [user.uid, receiverId]..sort();
 
-      // Get sender name
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      final senderName = userDoc.data()?['name'] ?? user.displayName ?? 'Unknown';
+      // Get sender name (cached or from firestore)
+      String senderName = _userNameCache[user.uid] ?? '';
+      if (senderName.isEmpty) {
+        final userDoc = await _firestore.collection('users').doc(user.uid).get();
+        senderName = userDoc.data()?['name'] ?? user.displayName ?? 'Unknown';
+        _userNameCache[user.uid] = senderName;
+      }
 
       final messageData = {
         'senderId': user.uid,

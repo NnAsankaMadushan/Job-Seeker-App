@@ -6,15 +6,18 @@ import 'package:job_seeker_app/models/message.dart';
 import 'package:job_seeker_app/services/firebase_chat_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
+import 'package:intl/intl.dart';
 
 class MessagingScreen extends StatefulWidget {
   final String userId;
   final String? userName;
+  final String? userImage;
 
   const MessagingScreen({
     super.key,
     required this.userId,
     this.userName,
+    this.userImage,
   });
 
   @override
@@ -26,14 +29,31 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
   final _scrollController = ScrollController();
   StreamSubscription<List<Message>>? _messagesSubscription;
   List<Message> _messages = [];
+  List<Message> _pendingMessages = [];
   bool _isLoading = true;
   bool _isSending = false;
+  bool _userIsAtBottom = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _scrollController.addListener(_scrollListener);
     _loadMessages();
+  }
+
+  void _scrollListener() {
+    if (!_scrollController.hasClients) return;
+    
+    // Check if user is near the bottom (within 100 pixels)
+    final isAtBottom = _scrollController.offset >= 
+        _scrollController.position.maxScrollExtent - 100;
+    
+    if (_userIsAtBottom != isAtBottom) {
+      setState(() {
+        _userIsAtBottom = isAtBottom;
+      });
+    }
   }
 
   @override
@@ -48,6 +68,7 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _scrollController.removeListener(_scrollListener);
     _messagesSubscription?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
@@ -66,21 +87,22 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
         if (mounted) {
           setState(() {
             _messages = messages;
+            // Remove pending messages that have now been delivered (matching by content and sender)
+            _pendingMessages.removeWhere((pending) => 
+              messages.any((m) => m.content == pending.content && m.senderId == pending.senderId));
             _isLoading = false;
           });
 
           // Mark messages as read whenever messages update
           FirebaseChatService().markAsRead(widget.userId);
 
-          // Auto-scroll to bottom when new messages arrive
-          Future.delayed(const Duration(milliseconds: 100), () {
-            if (_scrollController.hasClients) {
-              _scrollController.animateTo(
-                _scrollController.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-              );
-            }
+          // Auto-scroll to bottom only if user is already at the bottom OR it's the very first load
+          if (_isLoading || _userIsAtBottom) {
+            _scrollToBottom();
+          }
+          
+          setState(() {
+            _isLoading = false;
           });
         }
       });
@@ -98,48 +120,69 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty || _isSending) return;
+    if (_messageController.text.trim().isEmpty) return;
 
     final messageText = _messageController.text.trim();
+    final currentUserId = FirebaseAuthService().currentUser?.uid ?? '';
+    
+    // 1. Create temporary message for Optimistic UI
+    final tempMessage = Message(
+      id: 'pending_${DateTime.now().millisecondsSinceEpoch}',
+      senderId: currentUserId,
+      senderName: 'Me',
+      receiverId: widget.userId,
+      content: messageText,
+      timestamp: DateTime.now(),
+      isRead: false,
+    );
+
+    // 2. Update UI immediately
     _messageController.clear();
+    setState(() {
+      _pendingMessages.add(tempMessage);
+      _userIsAtBottom = true; // Force scroll for user's own message
+    });
+    _scrollToBottom();
 
-    setState(() => _isSending = true);
-
+    // 3. Send in background
     try {
       final result = await FirebaseChatService().sendMessage(
         receiverId: widget.userId,
         content: messageText,
       );
 
-      if (result['success']) {
-        setState(() => _isSending = false);
-
-        // Scroll to bottom
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
-          }
-        });
-      } else {
-        setState(() => _isSending = false);
+      if (!result['success']) {
         if (mounted) {
+          setState(() {
+            _pendingMessages.remove(tempMessage);
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(result['error'] ?? 'Failed to send message')),
           );
         }
       }
     } catch (e) {
-      setState(() => _isSending = false);
       if (mounted) {
+        setState(() {
+          _pendingMessages.remove(tempMessage);
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
       }
     }
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -148,7 +191,50 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.userName ?? 'User ${widget.userId}'),
+        title: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.5),
+                  width: 1,
+                ),
+              ),
+              child: widget.userImage != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(50),
+                      child: Image.network(
+                        widget.userImage!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => CircleAvatar(
+                          backgroundColor: Colors.white24,
+                          child: Text(
+                            widget.userName?.isNotEmpty == true ? widget.userName![0].toUpperCase() : '?',
+                            style: const TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    )
+                  : CircleAvatar(
+                      backgroundColor: Colors.white24,
+                      child: Text(
+                        widget.userName?.isNotEmpty == true ? widget.userName![0].toUpperCase() : '?',
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.userName ?? 'User',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -162,7 +248,7 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _messages.isEmpty
+                  : _messages.isEmpty && _pendingMessages.isEmpty
                       ? const Center(
                           child: Padding(
                             padding: EdgeInsets.all(24),
@@ -176,18 +262,53 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
                       : ListView.builder(
                           controller: _scrollController,
                           padding: const EdgeInsets.all(16),
-                          itemCount: _messages.length,
+                          itemCount: _messages.length + _pendingMessages.length,
                           itemBuilder: (context, index) {
-                            final message = _messages[index];
+                            final allMessages = [..._messages, ..._pendingMessages];
+                            final message = allMessages[index];
                             final isSent = message.senderId == currentUserId;
 
-                            return _MessageBubble(
+                            // Show date header if it's the first message or if the date changed
+                            bool showDateHeader = false;
+                            if (index == 0) {
+                              showDateHeader = true;
+                            } else {
+                              final previousMessage = allMessages[index - 1];
+                              if (!_isSameDay(message.timestamp, previousMessage.timestamp)) {
+                                showDateHeader = true;
+                              }
+                            }
+
+                            //Logic to show time only for the last message in a minute-group from same sender
+                            bool showTime = true;
+                            if (index < allMessages.length - 1) {
+                              final nextMessage = allMessages[index + 1];
+                              if (nextMessage.senderId == message.senderId &&
+                                  _isSameMinute(message.timestamp, nextMessage.timestamp)) {
+                                showTime = false;
+                              }
+                            }
+
+                            final bubble = _MessageBubble(
                               message: message,
                               isSent: isSent,
+                              showTime: showTime,
+                              receiverImage: widget.userImage,
                             ).animate().fadeIn().slideX(
                                   begin: isSent ? 0.2 : -0.2,
                                   duration: 300.ms,
                                 );
+
+                            if (showDateHeader) {
+                              return Column(
+                                children: [
+                                  _DateHeader(date: message.timestamp),
+                                  bubble,
+                                ],
+                              );
+                            }
+
+                            return bubble;
                           },
                         ),
             ),
@@ -260,10 +381,14 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
 class _MessageBubble extends StatelessWidget {
   final Message message;
   final bool isSent;
+  final bool showTime;
+  final String? receiverImage;
 
   const _MessageBubble({
     required this.message,
     required this.isSent,
+    this.showTime = true,
+    this.receiverImage,
   });
 
   @override
@@ -271,26 +396,51 @@ class _MessageBubble extends StatelessWidget {
     final bubbleColor = isSent
         ? Theme.of(context).colorScheme.primary
         : Colors.white.withOpacity(0.9);
+    
+    final isPending = message.id.startsWith('pending_');
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: showTime ? 12 : 4),
       child: Row(
         mainAxisAlignment:
             isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isSent) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
-              child: Text(
-                message.senderName.isNotEmpty
-                    ? message.senderName[0].toUpperCase()
-                    : '?',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
+            Opacity(
+              opacity: showTime ? 1.0 : 0.0, // Only show avatar for the last message in a group
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    width: 1,
+                  ),
                 ),
+                child: receiverImage != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(50),
+                        child: Image.network(
+                          receiverImage!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
+                            child: Text(
+                              message.senderName.isNotEmpty ? message.senderName[0].toUpperCase() : '?',
+                              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12),
+                            ),
+                          ),
+                        ),
+                      )
+                    : CircleAvatar(
+                        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
+                        child: Text(
+                          message.senderName.isNotEmpty ? message.senderName[0].toUpperCase() : '?',
+                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 8),
@@ -324,17 +474,35 @@ class _MessageBubble extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
-                    _formatTime(message.timestamp),
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 11,
+                if (showTime) ...[
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _formatTime(message.timestamp),
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 11,
+                          ),
+                        ),
+                        if (isPending) ...[
+                          const SizedBox(width: 4),
+                          SizedBox(
+                            width: 10,
+                            height: 10,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -345,17 +513,68 @@ class _MessageBubble extends StatelessWidget {
   }
 
   String _formatTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+    return DateFormat('h:mm a').format(dateTime); // e.g. 5:30 PM
+  }
+}
 
-    if (difference.inDays > 0) {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
+bool _isSameDay(DateTime date1, DateTime date2) {
+  return date1.year == date2.year &&
+      date1.month == date2.month &&
+      date1.day == date2.day;
+}
+
+bool _isSameMinute(DateTime date1, DateTime date2) {
+  return date1.year == date2.year &&
+      date1.month == date2.month &&
+      date1.day == date2.day &&
+      date1.hour == date2.hour &&
+      date1.minute == date2.minute;
+}
+
+class _DateHeader extends StatelessWidget {
+  final DateTime date;
+
+  const _DateHeader({required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    String formattedDate = _getFormattedDate(date);
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Row(
+        children: [
+          const Expanded(child: Divider(indent: 20, endIndent: 10)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.withOpacity(0.2)),
+            ),
+            child: Text(
+              formattedDate,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const Expanded(child: Divider(indent: 10, endIndent: 20)),
+        ],
+      ),
+    );
+  }
+
+  String _getFormattedDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final dateToCheck = DateTime(date.year, date.month, date.day);
+
+    if (dateToCheck == today) return 'Today';
+    if (dateToCheck == yesterday) return 'Yesterday';
+    return DateFormat('MMMM d, yyyy').format(date);
   }
 }
