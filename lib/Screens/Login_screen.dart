@@ -54,31 +54,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: scheme.primary,
                 ).animate().fadeIn(duration: 280.ms).slideY(begin: -0.08),
                 const SizedBox(height: 18),
-                AppDecoratedIcon(
-                  icon: Icons.chat_bubble_rounded,
-                  size: 82,
-                  iconSize: 36,
-                  color: scheme.primary,
-                  backgroundColor: scheme.primary.withValues(alpha: 0.14),
-                ).animate().scale(
-                      duration: 520.ms,
-                      curve: Curves.easeOutBack,
-                    ),
-                const SizedBox(height: 24),
-                Text(
-                  'Move from job discovery to real conversation faster.',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ).animate().fadeIn(delay: 80.ms).slideY(begin: 0.08),
-                const SizedBox(height: 12),
-                Text(
-                  'Log in to your workspace, review fresh requests, and keep every client conversation in one modern dashboard.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                ).animate().fadeIn(delay: 160.ms),
-                const SizedBox(height: 20),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,

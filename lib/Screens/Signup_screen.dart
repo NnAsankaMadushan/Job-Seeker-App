@@ -57,30 +57,16 @@ class _SignupScreenState extends State<SignupScreen> {
                   color: scheme.secondary,
                 ).animate().fadeIn(delay: 60.ms).slideY(begin: -0.08),
                 const SizedBox(height: 18),
-                Text(
-                  'Start with the essentials, then complete your profile in the next step.',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ).animate().fadeIn(delay: 120.ms).slideY(begin: 0.08),
-                const SizedBox(height: 12),
-                Text(
-                  'This account will hold your jobs, active messages, profile details, and notification preferences.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                ).animate().fadeIn(delay: 180.ms),
-                const SizedBox(height: 24),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: const [
-                    _StepPill(step: '01', label: 'Account setup'),
-                    _StepPill(step: '02', label: 'Profile details'),
-                    _StepPill(step: '03', label: 'Start exploring'),
-                  ],
-                ).animate().fadeIn(delay: 240.ms).slideY(begin: 0.06),
-                const SizedBox(height: 28),
+                // Wrap(
+                //   spacing: 10,
+                //   runSpacing: 10,
+                //   children: const [
+                //     _StepPill(step: '01', label: 'Account setup'),
+                //     _StepPill(step: '02', label: 'Profile details'),
+                //     _StepPill(step: '03', label: 'Start exploring'),
+                //   ],
+                // ).animate().fadeIn(delay: 240.ms).slideY(begin: 0.06),
+                const SizedBox(height: 18),
                 AppGlassCard(
                   child: Form(
                     key: _formKey,
