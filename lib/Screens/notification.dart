@@ -12,7 +12,8 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  final FirebaseNotificationService _notificationService = FirebaseNotificationService();
+  final FirebaseNotificationService _notificationService =
+      FirebaseNotificationService();
 
   IconData _getNotificationIcon(String type) {
     switch (type) {
@@ -57,13 +58,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
               await _notificationService.markAllAsRead();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('All notifications marked as read')),
+                  const SnackBar(
+                      content: Text('All notifications marked as read')),
                 );
               }
             },
-            child: const Text(
+            child: Text(
               'Mark all as read',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(
+                color: Theme.of(context).appBarTheme.foregroundColor,
+              ),
             ),
           ),
         ],
@@ -121,7 +125,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ),
                   direction: DismissDirection.endToStart,
                   onDismissed: (direction) async {
-                    await _notificationService.deleteNotification(notification.id);
+                    await _notificationService
+                        .deleteNotification(notification.id);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -140,7 +145,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     child: InkWell(
                       onTap: () async {
                         if (!notification.isRead) {
-                          await _notificationService.markAsRead(notification.id);
+                          await _notificationService
+                              .markAsRead(notification.id);
                         }
                       },
                       borderRadius: BorderRadius.circular(12),

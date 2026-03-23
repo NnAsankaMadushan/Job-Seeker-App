@@ -65,7 +65,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
   Future<void> _selectEndDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedEndDate ?? DateTime.now().add(const Duration(days: 1)),
+      initialDate:
+          _selectedEndDate ?? DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
@@ -177,8 +178,10 @@ class _PostJobScreenState extends State<PostJobScreen> {
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
         final addressParts = <String>[
-          if (place.subLocality?.trim().isNotEmpty ?? false) place.subLocality!.trim(),
-          if (place.locality?.trim().isNotEmpty ?? false) place.locality!.trim(),
+          if (place.subLocality?.trim().isNotEmpty ?? false)
+            place.subLocality!.trim(),
+          if (place.locality?.trim().isNotEmpty ?? false)
+            place.locality!.trim(),
           if (place.administrativeArea?.trim().isNotEmpty ?? false)
             place.administrativeArea!.trim(),
           if (place.country?.trim().isNotEmpty ?? false) place.country!.trim(),
@@ -238,7 +241,6 @@ class _PostJobScreenState extends State<PostJobScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         title: const Text('Post a Job'),
       ),
@@ -266,10 +268,15 @@ class _PostJobScreenState extends State<PostJobScreen> {
                               children: [
                                 Text(
                                   'Job Details',
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: Theme.of(context).colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                 ),
                                 const SizedBox(height: 24),
                                 _buildTextField(
@@ -298,13 +305,15 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                           child: SizedBox(
                                             height: 18,
                                             width: 18,
-                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2),
                                           ),
                                         )
                                       : IconButton(
                                           tooltip: 'Use current location',
                                           onPressed: _useCurrentLocation,
-                                          icon: const Icon(Icons.my_location_outlined),
+                                          icon: const Icon(
+                                              Icons.my_location_outlined),
                                         ),
                                 ),
                                 const SizedBox(height: 16),
@@ -316,9 +325,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                         child: InputDecorator(
                                           decoration: InputDecoration(
                                             labelText: 'Date',
-                                            prefixIcon: const Icon(Icons.calendar_today_outlined),
+                                            prefixIcon: const Icon(
+                                                Icons.calendar_today_outlined),
                                             border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(10),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                             ),
                                           ),
                                           child: Text(
@@ -336,9 +347,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                         child: InputDecorator(
                                           decoration: InputDecoration(
                                             labelText: 'Time',
-                                            prefixIcon: const Icon(Icons.access_time_outlined),
+                                            prefixIcon: const Icon(
+                                                Icons.access_time_outlined),
                                             border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(10),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                             ),
                                           ),
                                           child: Text(
@@ -360,9 +373,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                         child: InputDecorator(
                                           decoration: InputDecoration(
                                             labelText: 'End Date (Optional)',
-                                            prefixIcon: const Icon(Icons.event_busy_outlined),
+                                            prefixIcon: const Icon(
+                                                Icons.event_busy_outlined),
                                             border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(10),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                             ),
                                           ),
                                           child: Text(
@@ -380,14 +395,17 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                         child: InputDecorator(
                                           decoration: InputDecoration(
                                             labelText: 'End Time (Optional)',
-                                            prefixIcon: const Icon(Icons.timelapse_outlined),
+                                            prefixIcon: const Icon(
+                                                Icons.timelapse_outlined),
                                             border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(10),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                             ),
                                           ),
                                           child: Text(
                                             _selectedEndTime != null
-                                                ? _selectedEndTime!.format(context)
+                                                ? _selectedEndTime!
+                                                    .format(context)
                                                 : 'Default: +24 hours',
                                           ),
                                         ),
@@ -398,9 +416,12 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                 const SizedBox(height: 8),
                                 Text(
                                   'If not set, this opportunity will expire in 24 hours.',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey[700],
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Colors.grey[700],
+                                      ),
                                 ),
                                 const SizedBox(height: 16),
                                 _buildTextField(
@@ -423,7 +444,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
                             child: ElevatedButton(
                               onPressed: _isPosting ? null : _handlePostJob,
                               style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -446,7 +468,10 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                     ),
                             ),
                           ),
-                        ).animate().fadeIn().slideY(delay: const Duration(milliseconds: 200)),
+                        )
+                            .animate()
+                            .fadeIn()
+                            .slideY(delay: const Duration(milliseconds: 200)),
                       ],
                     ),
                   ),
@@ -479,10 +504,12 @@ class _PostJobScreenState extends State<PostJobScreen> {
     }
 
     DateTime? expiresAt;
-    final isPartialEndInput = (_selectedEndDate == null) != (_selectedEndTime == null);
+    final isPartialEndInput =
+        (_selectedEndDate == null) != (_selectedEndTime == null);
     if (isPartialEndInput) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select both end date and end time')),
+        const SnackBar(
+            content: Text('Please select both end date and end time')),
       );
       return;
     }
@@ -490,7 +517,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
       expiresAt = _combineDateAndTime(_selectedEndDate!, _selectedEndTime!);
       if (!expiresAt.isAfter(DateTime.now())) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('End date and time must be in the future')),
+          const SnackBar(
+              content: Text('End date and time must be in the future')),
         );
         return;
       }
@@ -499,7 +527,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
     setState(() => _isPosting = true);
 
     try {
-      final time = '${_selectedTime!.hour}:${_selectedTime!.minute.toString().padLeft(2, '0')}';
+      final time =
+          '${_selectedTime!.hour}:${_selectedTime!.minute.toString().padLeft(2, '0')}';
       final budget = double.tryParse(_budgetController.text) ?? 0.0;
 
       final result = await _jobService.postJob(

@@ -10,6 +10,7 @@ import 'package:job_seeker_app/services/firebase_job_service.dart';
 import 'package:job_seeker_app/services/firebase_notification_service.dart';
 import 'package:job_seeker_app/models/user.dart' as app_user;
 import 'package:job_seeker_app/models/job.dart' as JobModel;
+import 'package:job_seeker_app/widgets/app_navigation_bar.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'profile_screen.dart';
 import 'available_duties_screen.dart';
@@ -27,60 +28,69 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  // List of screens to show based on bottom navigation selection
-  final List<Widget> _screens = [
-    const _HomeContent(), // Extracted home content
-    const SearchScreen(), // Your search screen
-    const MyJobsScreen(), // Your jobs screen
-    const ProfileScreen(), // Your profile screen
-    const SettingsScreen(), // Settings screen
+  final List<Widget> _screens = const [
+    AppGradientBackground(
+      child: _HomeContent(),
+    ),
+    SearchScreen(),
+    MyJobsScreen(),
+    ProfileScreen(),
+    SettingsScreen(),
+  ];
+
+  final List<AppNavigationItem> _navigationItems = const [
+    AppNavigationItem(
+      label: 'Home',
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home_rounded,
+    ),
+    AppNavigationItem(
+      label: 'Search',
+      icon: Icons.search_rounded,
+      selectedIcon: Icons.manage_search_rounded,
+    ),
+    AppNavigationItem(
+      label: 'Jobs',
+      icon: Icons.work_outline_rounded,
+      selectedIcon: Icons.work_rounded,
+    ),
+    AppNavigationItem(
+      label: 'Profile',
+      icon: Icons.person_outline_rounded,
+      selectedIcon: Icons.person_rounded,
+    ),
+    AppNavigationItem(
+      label: 'Settings',
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings,
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _selectedIndex == 0
-          ? const AppGradientBackground(
-              child: _HomeContent(),
-            )
-          : AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: _screens[_selectedIndex],
-            ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+        child: SafeArea(
+          top: false,
+          child: AppFloatingNavigationBar(
+            items: _navigationItems,
+            selectedIndex: _selectedIndex,
+            onItemSelected: (index) {
+              if (index == _selectedIndex) {
+                return;
+              }
+
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
           ),
-          NavigationDestination(
-            icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.work_outline),
-            selectedIcon: Icon(Icons.work),
-            label: 'Jobs',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+        ),
       ),
     );
   }

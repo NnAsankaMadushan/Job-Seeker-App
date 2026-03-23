@@ -19,10 +19,6 @@ class AppGradientBackground extends StatelessWidget {
         isDark ? const Color(0xFF020617) : AppTheme.backgroundTop;
     final backgroundBottom =
         isDark ? const Color(0xFF0F172A) : AppTheme.backgroundBottom;
-    final topBlobColor =
-        theme.colorScheme.primary.withOpacity(isDark ? 0.22 : 0.16);
-    final bottomBlobColor =
-        theme.colorScheme.secondary.withOpacity(isDark ? 0.18 : 0.12);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -43,27 +39,7 @@ class AppGradientBackground extends StatelessWidget {
               minHeight:
                   constraints.hasBoundedHeight ? constraints.maxHeight : 0,
             ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: -120,
-                  right: -70,
-                  child: _BlurBlob(
-                    size: 260,
-                    color: topBlobColor,
-                  ),
-                ),
-                Positioned(
-                  bottom: -80,
-                  left: -50,
-                  child: _BlurBlob(
-                    size: 220,
-                    color: bottomBlobColor,
-                  ),
-                ),
-                child,
-              ],
-            ),
+            child: child,
           ),
         );
       },
@@ -203,33 +179,6 @@ class AppSectionHeader extends StatelessWidget {
         ),
         if (trailing != null) trailing!,
       ],
-    );
-  }
-}
-
-class _BlurBlob extends StatelessWidget {
-  const _BlurBlob({
-    required this.size,
-    required this.color,
-  });
-
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipOval(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color,
-          ),
-        ),
-      ),
     );
   }
 }
