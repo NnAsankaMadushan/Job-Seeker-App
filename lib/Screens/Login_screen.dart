@@ -1,10 +1,11 @@
-import 'package:job_seeker_app/Screens/Signup_screen.dart';
-import 'package:job_seeker_app/Screens/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:job_seeker_app/widgets/app_ui.dart';
-import '../widgets/social_button.dart';
+import 'package:job_seeker_app/Screens/Signup_screen.dart';
+import 'package:job_seeker_app/Screens/home_page.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
+
+import '../widgets/social_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,9 +16,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -36,67 +38,106 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: AppGradientBackground(
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.chat_rounded,
-                  size: 72,
-                  color: Theme.of(context).colorScheme.primary,
-                ).animate().shimmer().scale(
-                      begin: const Offset(0.94, 0.94),
-                      end: const Offset(1.06, 1.06),
-                      duration: 1000.ms,
+                AppPill(
+                  label: 'Work chat, redesigned',
+                  icon: Icons.auto_awesome_rounded,
+                  color: scheme.primary,
+                ).animate().fadeIn(duration: 280.ms).slideY(begin: -0.08),
+                const SizedBox(height: 18),
+                AppDecoratedIcon(
+                  icon: Icons.chat_bubble_rounded,
+                  size: 82,
+                  iconSize: 36,
+                  color: scheme.primary,
+                  backgroundColor: scheme.primary.withValues(alpha: 0.14),
+                ).animate().scale(
+                      duration: 520.ms,
+                      curve: Curves.easeOutBack,
                     ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Text(
-                  'Welcome Back',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  'Move from job discovery to real conversation faster.',
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
-                ).animate().fadeIn().slideY(),
-                const SizedBox(height: 8),
+                ).animate().fadeIn(delay: 80.ms).slideY(begin: 0.08),
+                const SizedBox(height: 12),
                 Text(
-                  'Log in to continue your job conversations.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  'Log in to your workspace, review fresh requests, and keep every client conversation in one modern dashboard.',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
                       ),
-                  textAlign: TextAlign.center,
-                ),
+                ).animate().fadeIn(delay: 160.ms),
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: const [
+                    _FeaturePill(
+                      icon: Icons.lock_outline_rounded,
+                      label: 'Secure sign-in',
+                    ),
+                    _FeaturePill(
+                      icon: Icons.flash_on_outlined,
+                      label: 'Fast handoff',
+                    ),
+                    _FeaturePill(
+                      icon: Icons.tips_and_updates_outlined,
+                      label: 'Smart alerts',
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.06),
                 const SizedBox(height: 28),
                 AppGlassCard(
                   child: Form(
                     key: _formKey,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const AppSectionHeader(
+                          eyebrow: 'Account',
+                          title: 'Welcome back',
+                          subtitle:
+                              'Use your email and password to reconnect with your work.',
+                        ),
+                        const SizedBox(height: 20),
                         TextFormField(
                           controller: _usernameController,
                           decoration: const InputDecoration(
                             labelText: 'Email',
-                            prefixIcon: Icon(Icons.person_outline),
+                            hintText: 'name@example.com',
+                            prefixIcon: Icon(Icons.alternate_email_rounded),
                           ),
+                          keyboardType: TextInputType.emailAddress,
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your username';
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter your email';
                             }
-                            if (value.length < 3) {
-                              return 'Username must be at least 3 characters long';
+                            if (!value.contains('@')) {
+                              return 'Please enter a valid email address';
                             }
                             return null;
                           },
                           autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ).animate().fadeIn().slideX(),
+                        ).animate().fadeIn(delay: 260.ms).slideX(begin: -0.04),
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,
                           decoration: const InputDecoration(
                             labelText: 'Password',
-                            prefixIcon: Icon(Icons.lock_outline),
+                            hintText: 'Enter your password',
+                            prefixIcon: Icon(Icons.lock_outline_rounded),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -108,38 +149,46 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                           autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ).animate().fadeIn(delay: 160.ms).slideX(),
+                        ).animate().fadeIn(delay: 340.ms).slideX(begin: -0.04),
                         const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton(
+                          child: ElevatedButton.icon(
                             onPressed: _isLoading ? null : _handleLogin,
-                            child: _isLoading
+                            icon: _isLoading
                                 ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
+                                    width: 18,
+                                    height: 18,
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2),
                                   )
-                                : const Text('Login'),
+                                : const Icon(Icons.arrow_forward_rounded),
+                            label: Text(_isLoading ? 'Signing in...' : 'Login'),
                           ),
-                        ).animate().fadeIn(delay: 280.ms).slideY(),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text("Don't have an account?"),
-                            TextButton(
-                              onPressed: () => Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SignupScreen(),
-                                ),
+                        ).animate().fadeIn(delay: 420.ms).slideY(begin: 0.06),
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.center,
+                          child: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 4,
+                            children: [
+                              Text(
+                                'New here?',
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
-                              child: const Text('Sign Up'),
-                            ),
-                          ],
-                        ).animate().fadeIn(delay: 360.ms),
+                              TextButton(
+                                onPressed: () => Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const SignupScreen(),
+                                  ),
+                                ),
+                                child: const Text('Create an account'),
+                              ),
+                            ],
+                          ),
+                        ).animate().fadeIn(delay: 500.ms),
                         SocialLoginButtons(
                           isLoading: _isLoading,
                           onGooglePressed: _handleGoogleSignIn,
@@ -149,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ),
-                ).animate().fadeIn(delay: 120.ms).slideY(begin: 0.08),
+                ).animate().fadeIn(delay: 180.ms).slideY(begin: 0.08),
               ],
             ),
           ),
@@ -158,39 +207,42 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-
-      // Use Firebase Authentication
-      final authService = FirebaseAuthService();
-      final result = await authService.login(
-        email: _usernameController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      setState(() => _isLoading = false);
-
-      if (result['success']) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login successful!')),
-          );
-
-          _navigateToHome();
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed: ${result['message']}')),
-          );
-        }
-      }
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
     }
+
+    setState(() => _isLoading = true);
+
+    final authService = FirebaseAuthService();
+    final result = await authService.login(
+      email: _usernameController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Login successful')),
+      );
+      _navigateToHome();
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Login failed: ${result['message']}')),
+    );
   }
 
   Future<void> _handleGoogleSignIn() async {
-    if (_isLoading) return;
+    if (_isLoading) {
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -199,51 +251,76 @@ class _LoginScreenState extends State<LoginScreen> {
       forceAccountSelection: true,
     );
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     setState(() => _isLoading = false);
 
     if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google sign-in successful!')),
+        const SnackBar(content: Text('Google sign-in successful')),
       );
-
       _navigateToHome();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${result['message']}')),
-      );
+      return;
     }
-  }
 
-  // Future<void> _handleFacebookSignIn() async {
-  //   if (_isLoading) return;
-  //
-  //   setState(() => _isLoading = true);
-  //
-  //   final authService = FirebaseAuthService();
-  //   final result = await authService.signInWithFacebook();
-  //
-  //   if (!mounted) return;
-  //
-  //   setState(() => _isLoading = false);
-  //
-  //   if (result['success']) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Facebook sign-in successful!')),
-  //     );
-  //
-  //     _navigateToHome();
-  //   } else {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Facebook sign-in failed: ${result['message']}')),
-  //     );
-  //   }
-  // }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${result['message']}')),
+    );
+  }
 
   void _showProviderNotConfigured(String provider) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$provider sign-in is not configured yet.')),
+    );
+  }
+}
+
+class _FeaturePill extends StatelessWidget {
+  const _FeaturePill({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: Colors.white.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? 0.06 : 0.4,
+        ),
+        border: Border.all(
+          color: Colors.white.withValues(
+            alpha:
+                Theme.of(context).brightness == Brightness.dark ? 0.08 : 0.54,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: scheme.primary,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurface,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }

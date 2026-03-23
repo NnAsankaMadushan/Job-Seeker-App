@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:job_seeker_app/theme/app_theme.dart';
 import 'package:job_seeker_app/theme/theme_controller.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -28,6 +29,8 @@ class MyApp extends StatelessWidget {
           theme: AppTheme.lightTheme(),
           darkTheme: AppTheme.darkTheme(),
           themeMode: themeMode,
+          themeAnimationCurve: Curves.easeOutCubic,
+          themeAnimationDuration: const Duration(milliseconds: 420),
           home: const AuthGate(),
         );
       },
@@ -45,7 +48,29 @@ class AuthGate extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: AppGradientBackground(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: AppGlassCard(
+                    child: SizedBox(
+                      width: 180,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 18),
+                          Text(
+                            'Preparing your workspace...',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           );
         }
 

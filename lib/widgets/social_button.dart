@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class SocialLoginButtons extends StatelessWidget {
-  final VoidCallback? onFacebookPressed;
-  final VoidCallback? onGooglePressed;
-  final VoidCallback? onApplePressed;
-  final bool isLoading;
-
   const SocialLoginButtons({
     super.key,
     this.onFacebookPressed,
@@ -15,48 +11,71 @@ class SocialLoginButtons extends StatelessWidget {
     this.isLoading = false,
   });
 
+  final VoidCallback? onFacebookPressed;
+  final VoidCallback? onGooglePressed;
+  final VoidCallback? onApplePressed;
+  final bool isLoading;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(height: 24),
+        const SizedBox(height: 22),
         Row(
           children: [
-            const Expanded(child: Divider()),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'OR',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                ),
+            Expanded(
+              child: Divider(
+                color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
-            const Expanded(child: Divider()),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                'OR CONTINUE WITH',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      letterSpacing: 0.6,
+                    ),
+              ),
+            ),
+            Expanded(
+              child: Divider(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
           ],
-        ).animate().fadeIn(delay: 400.ms),
-        const SizedBox(height: 24),
+        ).animate().fadeIn(delay: 420.ms),
+        const SizedBox(height: 18),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _SocialButton(
-              icon: Icons.facebook,
-              label: 'Facebook',
-              color: const Color(0xFF1877F2),
-              onPressed: isLoading ? null : onFacebookPressed,
-            ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.3),
-            _SocialButton(
-              icon: Icons.g_mobiledata,
-              label: 'Google',
-              color: const Color(0xFFDB4437),
-              onPressed: isLoading ? null : onGooglePressed,
-            ).animate().fadeIn(delay: 600.ms),
-            _SocialButton(
-              icon: Icons.apple,
-              label: 'Apple',
-              color: Colors.black,
-              onPressed: isLoading ? null : onApplePressed,
-            ).animate().fadeIn(delay: 700.ms).slideX(begin: 0.3),
+            Expanded(
+              child: _SocialButton(
+                icon: Icons.facebook,
+                label: 'Facebook',
+                color: const Color(0xFF1877F2),
+                onPressed: isLoading ? null : onFacebookPressed,
+              ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.08),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _SocialButton(
+                icon: Icons.g_mobiledata,
+                label: 'Google',
+                color: const Color(0xFFDB4437),
+                onPressed: isLoading ? null : onGooglePressed,
+              ).animate().fadeIn(delay: 580.ms),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _SocialButton(
+                icon: Icons.apple,
+                label: 'Apple',
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black,
+                onPressed: isLoading ? null : onApplePressed,
+              ).animate().fadeIn(delay: 660.ms).slideX(begin: 0.08),
+            ),
           ],
         ),
       ],
@@ -65,11 +84,6 @@ class SocialLoginButtons extends StatelessWidget {
 }
 
 class _SocialButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback? onPressed;
-
   const _SocialButton({
     required this.icon,
     required this.label,
@@ -77,28 +91,37 @@ class _SocialButton extends StatelessWidget {
     required this.onPressed,
   });
 
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onPressed;
+
   @override
   Widget build(BuildContext context) {
     final isEnabled = onPressed != null;
 
-    return Tooltip(
-      message: 'Sign in with $label',
-      child: Material(
-        elevation: 2,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        color: Theme.of(context).colorScheme.surface,
-        child: InkWell(
-          onTap: onPressed,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            child: Icon(
-              icon,
-              color: isEnabled ? color : color.withOpacity(0.45),
-              size: 28,
-            ),
+    return AppGlassCard(
+      onTap: onPressed,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      borderRadius: BorderRadius.circular(22),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 28,
+            color: isEnabled ? color : color.withValues(alpha: 0.4),
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: isEnabled
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
       ),
     );
   }

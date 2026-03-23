@@ -12,6 +12,7 @@ class Job {
   final DateTime createdAt;
   final DateTime expiresAt;
   final String? assignedTo;
+  final List<String> imageUrls;
 
   Job({
     required this.id,
@@ -27,6 +28,7 @@ class Job {
     required this.createdAt,
     required this.expiresAt,
     this.assignedTo,
+    this.imageUrls = const [],
   });
 
   factory Job.fromJson(Map<String, dynamic> json) {
@@ -46,7 +48,19 @@ class Job {
       createdAt: createdAt,
       expiresAt: _parseExpiry(json['expiresAt'], createdAt),
       assignedTo: json['assignedTo'],
+      imageUrls: _parseImageUrls(json['imageUrls']),
     );
+  }
+
+  static List<String> _parseImageUrls(dynamic imageUrlsValue) {
+    if (imageUrlsValue is List) {
+      return imageUrlsValue
+          .where((item) => item != null)
+          .map((item) => item.toString())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return const [];
   }
 
   static DateTime _parseExpiry(dynamic expiresAtValue, DateTime createdAt) {
@@ -63,7 +77,8 @@ class Job {
     // Handle Firestore Timestamp
     if (dateValue is Map && dateValue.containsKey('_seconds')) {
       return DateTime.fromMillisecondsSinceEpoch(
-        dateValue['_seconds'] * 1000 + (dateValue['_nanoseconds'] ?? 0) ~/ 1000000,
+        dateValue['_seconds'] * 1000 +
+            (dateValue['_nanoseconds'] ?? 0) ~/ 1000000,
       );
     }
     // Handle Timestamp object with toDate method
@@ -101,6 +116,7 @@ class Job {
       'createdAt': createdAt.toIso8601String(),
       'expiresAt': expiresAt.toIso8601String(),
       'assignedTo': assignedTo,
+      'imageUrls': imageUrls,
     };
   }
 
@@ -108,4 +124,5 @@ class Job {
   bool isInProgress() => status == 'in_progress';
   bool isCompleted() => status == 'completed';
   bool isExpired() => DateTime.now().isAfter(expiresAt);
+  bool get hasPhotos => imageUrls.isNotEmpty;
 }

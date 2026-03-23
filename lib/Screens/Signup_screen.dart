@@ -1,10 +1,11 @@
-import 'package:job_seeker_app/Screens/Login_screen.dart';
-import 'package:job_seeker_app/Screens/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:job_seeker_app/Screens/Login_screen.dart';
 import 'package:job_seeker_app/Screens/home_page.dart';
+import 'package:job_seeker_app/Screens/register_screen.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
+
 import '../widgets/social_button.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -16,10 +17,11 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -31,52 +33,77 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: AppGradientBackground(
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                IconButton(
+                  onPressed: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  ),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ).animate().fadeIn(duration: 240.ms),
+                const SizedBox(height: 8),
+                AppPill(
+                  label: 'Create your hiring workspace',
+                  icon: Icons.person_add_alt_1_rounded,
+                  color: scheme.secondary,
+                ).animate().fadeIn(delay: 60.ms).slideY(begin: -0.08),
+                const SizedBox(height: 18),
+                Text(
+                  'Start with the essentials, then complete your profile in the next step.',
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
-                      icon: const Icon(Icons.arrow_back_rounded),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Create Account',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Icon(
-                  Icons.person_add_alt_1_rounded,
-                  size: 68,
-                  color: Theme.of(context).colorScheme.primary,
-                ).animate().shimmer(),
+                ).animate().fadeIn(delay: 120.ms).slideY(begin: 0.08),
+                const SizedBox(height: 12),
+                Text(
+                  'This account will hold your jobs, active messages, profile details, and notification preferences.',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ).animate().fadeIn(delay: 180.ms),
                 const SizedBox(height: 24),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: const [
+                    _StepPill(step: '01', label: 'Account setup'),
+                    _StepPill(step: '02', label: 'Profile details'),
+                    _StepPill(step: '03', label: 'Start exploring'),
+                  ],
+                ).animate().fadeIn(delay: 240.ms).slideY(begin: 0.06),
+                const SizedBox(height: 28),
                 AppGlassCard(
                   child: Form(
                     key: _formKey,
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const AppSectionHeader(
+                          eyebrow: 'Step 1',
+                          title: 'Create your account',
+                          subtitle:
+                              'Use an email and password you will remember. You can add the rest of your information next.',
+                        ),
+                        const SizedBox(height: 20),
                         TextFormField(
                           controller: _emailController,
                           decoration: const InputDecoration(
                             labelText: 'Email',
-                            prefixIcon: Icon(Icons.email_outlined),
+                            hintText: 'name@example.com',
+                            prefixIcon: Icon(Icons.alternate_email_rounded),
                           ),
+                          keyboardType: TextInputType.emailAddress,
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            if (value == null || value.trim().isEmpty) {
                               return 'Please enter your email';
                             }
                             if (!value.contains('@') || !value.contains('.')) {
@@ -84,15 +111,16 @@ class _SignupScreenState extends State<SignupScreen> {
                             }
                             return null;
                           },
-                        ).animate().fadeIn(delay: 120.ms).slideX(),
+                        ).animate().fadeIn(delay: 300.ms).slideX(begin: -0.04),
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _passwordController,
+                          obscureText: true,
                           decoration: const InputDecoration(
                             labelText: 'Password',
-                            prefixIcon: Icon(Icons.lock_outline),
+                            hintText: 'Create a secure password',
+                            prefixIcon: Icon(Icons.lock_outline_rounded),
                           ),
-                          obscureText: true,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your password';
@@ -102,15 +130,16 @@ class _SignupScreenState extends State<SignupScreen> {
                             }
                             return null;
                           },
-                        ).animate().fadeIn(delay: 220.ms).slideX(),
+                        ).animate().fadeIn(delay: 380.ms).slideX(begin: -0.04),
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _confirmPasswordController,
-                          decoration: const InputDecoration(
-                            labelText: 'Confirm Password',
-                            prefixIcon: Icon(Icons.lock_clock_outlined),
-                          ),
                           obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Confirm password',
+                            hintText: 'Repeat your password',
+                            prefixIcon: Icon(Icons.verified_user_outlined),
+                          ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please confirm your password';
@@ -120,38 +149,47 @@ class _SignupScreenState extends State<SignupScreen> {
                             }
                             return null;
                           },
-                        ).animate().fadeIn(delay: 320.ms).slideX(),
+                        ).animate().fadeIn(delay: 460.ms).slideX(begin: -0.04),
                         const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
+                          child: ElevatedButton.icon(
                             onPressed: _isLoading ? null : _handleSignup,
-                            child: _isLoading
+                            icon: _isLoading
                                 ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
+                                    width: 18,
+                                    height: 18,
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2),
                                   )
-                                : const Text('Continue'),
+                                : const Icon(Icons.arrow_forward_rounded),
+                            label:
+                                Text(_isLoading ? 'Preparing...' : 'Continue'),
                           ),
-                        ).animate().fadeIn(delay: 420.ms).slideY(),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text('Already have an account?'),
-                            TextButton(
-                              onPressed: () => Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const LoginScreen()),
+                        ).animate().fadeIn(delay: 540.ms).slideY(begin: 0.06),
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.center,
+                          child: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 4,
+                            children: [
+                              Text(
+                                'Already have an account?',
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
-                              child: const Text('Log in'),
-                            ),
-                          ],
-                        ).animate().fadeIn(delay: 500.ms),
+                              TextButton(
+                                onPressed: () => Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LoginScreen(),
+                                  ),
+                                ),
+                                child: const Text('Log in'),
+                              ),
+                            ],
+                          ),
+                        ).animate().fadeIn(delay: 620.ms),
                         SocialLoginButtons(
                           isLoading: _isLoading,
                           onGooglePressed: _handleGoogleSignIn,
@@ -161,7 +199,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ],
                     ),
                   ),
-                ).animate().fadeIn().slideY(begin: 0.08),
+                ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.08),
               ],
             ),
           ),
@@ -171,27 +209,34 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _handleSignup() {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      // Simulate API call delay
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() => _isLoading = false);
-        // Navigate to RegisterScreen with email and password
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RegisterScreen(
-              email: _emailController.text,
-              password: _passwordController.text,
-            ),
-          ),
-        );
-      });
+    if (!_formKey.currentState!.validate()) {
+      return;
     }
+
+    setState(() => _isLoading = true);
+
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() => _isLoading = false);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RegisterScreen(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          ),
+        ),
+      );
+    });
   }
 
   Future<void> _handleGoogleSignIn() async {
-    if (_isLoading) return;
+    if (_isLoading) {
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -200,59 +245,88 @@ class _SignupScreenState extends State<SignupScreen> {
       forceAccountSelection: true,
     );
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     setState(() => _isLoading = false);
 
     if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google sign-in successful!')),
+        const SnackBar(content: Text('Google sign-in successful')),
       );
-
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
         (route) => false,
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${result['message']}')),
-      );
+      return;
     }
-  }
 
-  // Future<void> _handleFacebookSignIn() async {
-  //   if (_isLoading) return;
-  //
-  //   setState(() => _isLoading = true);
-  //
-  //   final authService = FirebaseAuthService();
-  //   final result = await authService.signInWithFacebook();
-  //
-  //   if (!mounted) return;
-  //
-  //   setState(() => _isLoading = false);
-  //
-  //   if (result['success']) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Facebook sign-in successful!')),
-  //     );
-  //
-  //     Navigator.pushAndRemoveUntil(
-  //       context,
-  //       MaterialPageRoute(builder: (_) => const HomePage()),
-  //       (route) => false,
-  //     );
-  //   } else {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Facebook sign-in failed: ${result['message']}')),
-  //     );
-  //   }
-  // }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${result['message']}')),
+    );
+  }
 
   void _showProviderNotConfigured(String provider) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$provider sign-in is not configured yet.')),
+    );
+  }
+}
+
+class _StepPill extends StatelessWidget {
+  const _StepPill({
+    required this.step,
+    required this.label,
+  });
+
+  final String step;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: Colors.white.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? 0.06 : 0.4,
+        ),
+        border: Border.all(
+          color: Colors.white.withValues(
+            alpha:
+                Theme.of(context).brightness == Brightness.dark ? 0.08 : 0.54,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: scheme.primary.withValues(alpha: 0.14),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              step,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: scheme.primary,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+        ],
+      ),
     );
   }
 }

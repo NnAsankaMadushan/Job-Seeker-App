@@ -9,10 +9,12 @@ import 'package:job_seeker_app/services/firebase_notification_service.dart';
 class FirebaseJobService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseNotificationService _notificationService = FirebaseNotificationService();
+  final FirebaseNotificationService _notificationService =
+      FirebaseNotificationService();
   static const Duration _defaultJobLifetime = Duration(hours: 24);
 
-  List<Job> _toActiveJobs(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+  List<Job> _toActiveJobs(
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
     final now = DateTime.now();
     final jobs = <Job>[];
     final expiredJobIds = <String>[];
@@ -56,8 +58,10 @@ class FirebaseJobService {
     }
 
     try {
-      final legacySnapshot =
-          await _firestore.collection('jobs').where('expiresAt', isNull: true).get();
+      final legacySnapshot = await _firestore
+          .collection('jobs')
+          .where('expiresAt', isNull: true)
+          .get();
       for (final doc in legacySnapshot.docs) {
         final job = Job.fromJson({
           'id': doc.id,
@@ -142,7 +146,9 @@ class FirebaseJobService {
         .where('applicantId', isEqualTo: userId)
         .get();
 
-    final jobIds = applicationsSnapshot.docs.map((doc) => doc.data()['jobId'] as String).toList();
+    final jobIds = applicationsSnapshot.docs
+        .map((doc) => doc.data()['jobId'] as String)
+        .toList();
 
     if (jobIds.isEmpty) {
       yield [];
@@ -185,6 +191,7 @@ class FirebaseJobService {
     required String time,
     required double budget,
     DateTime? expiresAt,
+    List<String> imageUrls = const [],
   }) async {
     try {
       final user = _auth.currentUser;
@@ -197,7 +204,8 @@ class FirebaseJobService {
 
       // Get user data
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      final providerName = userDoc.data()?['name'] ?? user.displayName ?? 'Unknown';
+      final providerName =
+          userDoc.data()?['name'] ?? user.displayName ?? 'Unknown';
       final now = DateTime.now();
       final resolvedExpiresAt = expiresAt ?? now.add(_defaultJobLifetime);
 
@@ -220,6 +228,7 @@ class FirebaseJobService {
         'status': 'available',
         'createdAt': FieldValue.serverTimestamp(),
         'expiresAt': Timestamp.fromDate(resolvedExpiresAt),
+        'imageUrls': imageUrls,
       };
 
       final docRef = await _firestore.collection('jobs').add(jobData);
@@ -297,7 +306,8 @@ class FirebaseJobService {
         };
       }
       final jobTitle = jobDoc.data()?['title'] ?? '';
-      final applicantName = userDoc.data()?['name'] ?? user.displayName ?? 'Unknown';
+      final applicantName =
+          userDoc.data()?['name'] ?? user.displayName ?? 'Unknown';
 
       final applicationData = {
         'jobId': jobId,
@@ -379,13 +389,19 @@ class FirebaseJobService {
     required String status,
   }) async {
     try {
-      await _firestore.collection('job_applications').doc(applicationId).update({
+      await _firestore
+          .collection('job_applications')
+          .doc(applicationId)
+          .update({
         'status': status,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
       // Get application details for notification
-      final appDoc = await _firestore.collection('job_applications').doc(applicationId).get();
+      final appDoc = await _firestore
+          .collection('job_applications')
+          .doc(applicationId)
+          .get();
       final jobId = appDoc.data()?['jobId'];
       final applicantId = appDoc.data()?['applicantId'];
       final jobTitle = appDoc.data()?['jobTitle'];
@@ -395,7 +411,9 @@ class FirebaseJobService {
         await _notificationService.createNotification(
           userId: applicantId,
           type: 'application',
-          title: status == 'accepted' ? 'Application Accepted!' : 'Application Status Updated',
+          title: status == 'accepted'
+              ? 'Application Accepted!'
+              : 'Application Status Updated',
           message: status == 'accepted'
               ? 'Your application for "$jobTitle" has been accepted!'
               : 'Your application for "$jobTitle" has been rejected.',
@@ -413,7 +431,8 @@ class FirebaseJobService {
 
       return {
         'success': true,
-        'message': 'Application ${status == "accepted" ? "accepted" : "rejected"}',
+        'message':
+            'Application ${status == "accepted" ? "accepted" : "rejected"}',
       };
     } catch (e) {
       return {

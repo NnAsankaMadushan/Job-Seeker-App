@@ -1,5 +1,6 @@
 // jobs_screen.dart
 import 'package:flutter/material.dart';
+import 'package:job_seeker_app/Screens/job_details_screen.dart';
 import 'package:job_seeker_app/models/job.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
 import 'package:job_seeker_app/Screens/post_job_screen.dart';
@@ -100,46 +101,67 @@ class _JobsScreenState extends State<JobsScreen> {
                         final job = jobs[index];
                         return Card(
                           margin: const EdgeInsets.only(bottom: 16),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.work_outline,
-                                      color: Colors.teal,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        job.title,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => openJobDetailsScreen(context, job),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.work_outline,
+                                        color: Colors.teal,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          job.title,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                      Chip(
+                                        label:
+                                            Text(_getStatusLabel(job.status)),
+                                        backgroundColor:
+                                            _getStatusColor(job.status)
+                                                .withValues(alpha: 0.2),
+                                        labelStyle: TextStyle(
+                                            color: _getStatusColor(job.status)),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Location: ${job.location}'),
+                                  Text('Budget: \$${job.budget}'),
+                                  Text(
+                                    'Date: ${job.date.day}/${job.date.month}/${job.date.year}',
+                                  ),
+                                  if (job.hasPhotos) ...[
+                                    const SizedBox(height: 8),
                                     Chip(
-                                      label: Text(_getStatusLabel(job.status)),
-                                      backgroundColor: _getStatusColor(job.status).withOpacity(0.2),
-                                      labelStyle: TextStyle(color: _getStatusColor(job.status)),
+                                      label: Text(
+                                          '${job.imageUrls.length} photos'),
+                                      avatar: const Icon(
+                                        Icons.photo_library_outlined,
+                                        size: 18,
+                                      ),
                                     ),
                                   ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text('Location: ${job.location}'),
-                                Text('Budget: \$${job.budget}'),
-                                Text('Date: ${job.date.day}/${job.date.month}/${job.date.year}'),
-                                const SizedBox(height: 8),
-                                Text(
-                                  job.description,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: Colors.grey[700]),
-                                ),
-                              ],
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    job.description,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: Colors.grey[700]),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );

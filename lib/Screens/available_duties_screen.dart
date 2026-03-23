@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:job_seeker_app/services/firebase_job_service.dart';
-import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/Screens/job_details_screen.dart';
+import 'package:job_seeker_app/Screens/messaging_screen.dart';
 import 'package:job_seeker_app/models/job.dart';
+import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/services/firebase_job_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
-import 'messaging_screen.dart';
 
 class AvailableDutiesScreen extends StatefulWidget {
   const AvailableDutiesScreen({super.key});
@@ -16,6 +17,7 @@ class AvailableDutiesScreen extends StatefulWidget {
 class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
   final FirebaseJobService _jobService = FirebaseJobService();
   final FirebaseAuthService _authService = FirebaseAuthService();
+
   final Set<String> _appliedJobs = {};
   String? _currentUserId;
 
@@ -29,9 +31,7 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
   Future<void> _loadCurrentUser() async {
     final user = await _authService.getCurrentUserData();
     if (mounted) {
-      setState(() {
-        _currentUserId = user?.id;
-      });
+      setState(() => _currentUserId = user?.id);
     }
   }
 
@@ -39,85 +39,86 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
     try {
       final appliedJobIds = await _jobService.getAppliedJobIds();
       if (mounted) {
-        setState(() {
-          _appliedJobs.addAll(appliedJobIds);
-        });
+        setState(() => _appliedJobs.addAll(appliedJobIds));
       }
-    } catch (e) {
-      // Silently fail
+    } catch (_) {
+      // Keep the screen usable even if applied-state hydration fails.
     }
   }
 
   void _showApplyDialog(Job job) {
     final messageController = TextEditingController();
 
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Apply for ${job.title}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Send a message to ${job.providerName}'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: messageController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: 'Tell them why you\'re a great fit for this job...',
-                border: OutlineInputBorder(),
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text('Apply for ${job.title}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Introduce yourself to ${job.providerName}.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: messageController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText:
+                      'Tell them why you are a strong fit for this job...',
+                ),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final message = messageController.text.trim();
-              if (message.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a message')),
-                );
-                return;
-              }
-
-              Navigator.pop(context);
-
-              final result = await _jobService.applyForJob(
-                jobId: job.id,
-                message: message,
-              );
-
-              if (mounted) {
-                if (result['success']) {
-                  setState(() {
-                    _appliedJobs.add(job.id);
-                  });
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final message = messageController.text.trim();
+                if (message.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Application submitted successfully!'),
-                      backgroundColor: Colors.green,
+                      content: Text('Please enter a message before applying'),
                     ),
                   );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(result['message'] ?? 'Failed to apply')),
-                  );
+                  return;
                 }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
+
+                Navigator.pop(dialogContext);
+
+                final result = await _jobService.applyForJob(
+                  jobId: job.id,
+                  message: message,
+                );
+
+                if (!mounted) {
+                  return;
+                }
+
+                if (result['success']) {
+                  setState(() => _appliedJobs.add(job.id));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Application submitted successfully'),
+                    ),
+                  );
+                  return;
+                }
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(result['message'] ?? 'Failed to apply'),
+                  ),
+                );
+              },
+              child: const Text('Submit'),
             ),
-            child: const Text('Submit Application'),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 
@@ -137,7 +138,14 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
 
             if (snapshot.hasError) {
               return Center(
-                child: Text('Error: ${snapshot.error}'),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AppEmptyState(
+                    icon: Icons.error_outline_rounded,
+                    title: 'Unable to load jobs',
+                    subtitle: '${snapshot.error}',
+                  ),
+                ),
               );
             }
 
@@ -150,245 +158,201 @@ class _AvailableDutiesScreenState extends State<AvailableDutiesScreen> {
                   child: AppEmptyState(
                     icon: Icons.work_off_outlined,
                     title: 'No available jobs',
-                    subtitle: 'Check back later for new opportunities',
+                    subtitle: 'Check back later for new opportunities.',
                   ),
                 ),
               );
             }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: jobs.length,
-              itemBuilder: (context, index) {
-                final job = jobs[index];
-                final hasApplied = _appliedJobs.contains(job.id);
-                final isOwnJob = _currentUserId == job.providerId;
-
-                return Card(
-              elevation: 5,
-              margin: const EdgeInsets.only(bottom: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white,
-                      Colors.grey.shade50,
-                    ],
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Job Header with Status Badge
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(15),
-                          topRight: Radius.circular(15),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              job.title,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isOwnJob
-                                  ? Colors.orange
-                                  : (hasApplied
-                                      ? Colors.green
-                                      : Theme.of(context).colorScheme.primary),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              isOwnJob
-                                  ? 'Your Post'
-                                  : (hasApplied ? 'Applied' : 'Available'),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Job Details
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Provider name
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.person_outline,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Posted by ${job.providerName}',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Location
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_on_outlined,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                job.location,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          // Date
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${job.date.day}/${job.date.month}/${job.date.year}',
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          // Price
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.attach_money_outlined,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '\$${job.budget.toStringAsFixed(2)}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // Description
-                          Text(
-                            job.description,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          const SizedBox(height: 16),
-                          // Action Buttons
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: (hasApplied || isOwnJob)
-                                      ? null
-                                      : () => _showApplyDialog(job),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: isOwnJob
-                                        ? Colors.orange
-                                        : (hasApplied
-                                            ? Colors.grey
-                                            : Theme.of(context).colorScheme.primary),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  icon: Icon(isOwnJob
-                                      ? Icons.work
-                                      : (hasApplied
-                                          ? Icons.check_circle
-                                          : Icons.send_outlined)),
-                                  label: Text(isOwnJob
-                                      ? 'Your Post'
-                                      : (hasApplied ? 'Applied' : 'Apply Now')),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              IconButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => MessagingScreen(
-                                        userId: job.providerId,
-                                        userName: job.providerName,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.grey.shade200,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                icon: Icon(
-                                  Icons.chat_outlined,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-                ).animate().fadeIn(delay: (50 * index).ms).slideX();
-              },
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 120),
+              children: [
+                const AppSectionHeader(
+                  eyebrow: 'Marketplace',
+                  title: 'Fresh work requests',
+                  subtitle:
+                      'Browse open jobs, message providers, and submit your pitch quickly.',
+                ).animate().fadeIn(duration: 260.ms).slideY(begin: 0.08),
+                const SizedBox(height: 18),
+                for (var index = 0; index < jobs.length; index++) ...[
+                  _AvailableJobCard(
+                    job: jobs[index],
+                    hasApplied: _appliedJobs.contains(jobs[index].id),
+                    isOwnJob: _currentUserId == jobs[index].providerId,
+                    onApply: () => _showApplyDialog(jobs[index]),
+                  )
+                      .animate()
+                      .fadeIn(delay: Duration(milliseconds: 120 + (index * 70)))
+                      .slideY(begin: 0.08),
+                  if (index != jobs.length - 1) const SizedBox(height: 12),
+                ],
+              ],
             );
           },
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
-        child: const Icon(Icons.filter_list),
-      ).animate().scale(),
+        child: const Icon(Icons.filter_list_rounded),
+      ).animate().scale(duration: 320.ms),
     );
+  }
+}
+
+class _AvailableJobCard extends StatelessWidget {
+  const _AvailableJobCard({
+    required this.job,
+    required this.hasApplied,
+    required this.isOwnJob,
+    required this.onApply,
+  });
+
+  final Job job;
+  final bool hasApplied;
+  final bool isOwnJob;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final status = _resolveStatus(scheme);
+
+    return AppGlassCard(
+      onTap: () => openJobDetailsScreen(context, job),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppDecoratedIcon(
+                icon: Icons.work_outline_rounded,
+                color: scheme.primary,
+                backgroundColor: scheme.primary.withValues(alpha: 0.14),
+                size: 56,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      job.title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Posted by ${job.providerName}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              AppPill(
+                label: status.$1,
+                icon: status.$2,
+                color: status.$3,
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              AppPill(
+                label: job.location,
+                icon: Icons.location_on_outlined,
+                color: scheme.secondary,
+              ),
+              AppPill(
+                label: '${job.date.day}/${job.date.month}/${job.date.year}',
+                icon: Icons.calendar_month_outlined,
+                color: scheme.primary,
+              ),
+              AppPill(
+                label: job.time,
+                icon: Icons.schedule_rounded,
+                color: scheme.tertiary,
+              ),
+              AppPill(
+                label: 'LKR ${job.budget.toStringAsFixed(0)}',
+                icon: Icons.payments_outlined,
+                color: const Color(0xFF059669),
+              ),
+              if (job.hasPhotos)
+                AppPill(
+                  label: '${job.imageUrls.length} photos',
+                  icon: Icons.photo_library_outlined,
+                  color: Color(0xFFF59E0B),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            job.description,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: hasApplied || isOwnJob ? null : onApply,
+                  icon: Icon(
+                    isOwnJob
+                        ? Icons.work_history_outlined
+                        : hasApplied
+                            ? Icons.check_circle_outline_rounded
+                            : Icons.send_outlined,
+                  ),
+                  label: Text(
+                    isOwnJob
+                        ? 'Your post'
+                        : hasApplied
+                            ? 'Applied'
+                            : 'Apply now',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MessagingScreen(
+                        userId: job.providerId,
+                        userName: job.providerName,
+                      ),
+                    ),
+                  );
+                },
+                child: const Icon(Icons.forum_outlined),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  (String, IconData, Color) _resolveStatus(ColorScheme scheme) {
+    if (isOwnJob) {
+      return ('Your post', Icons.edit_note_rounded, scheme.tertiary);
+    }
+    if (hasApplied) {
+      return (
+        'Applied',
+        Icons.check_circle_outline_rounded,
+        const Color(0xFF059669)
+      );
+    }
+    return ('Open', Icons.bolt_rounded, scheme.primary);
   }
 }

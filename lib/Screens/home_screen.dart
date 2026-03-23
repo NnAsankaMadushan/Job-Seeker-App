@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:job_seeker_app/services/firebase_chat_service.dart';
-import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/Screens/messaging_screen.dart';
 import 'package:job_seeker_app/models/message.dart';
+import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/services/firebase_chat_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
-import 'messaging_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,14 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Messages'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {});
-            },
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => setState(() {}),
           ),
         ],
       ),
@@ -45,7 +39,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
             if (snapshot.hasError) {
               return Center(
-                child: Text('Error: ${snapshot.error}'),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: AppEmptyState(
+                    icon: Icons.error_outline_rounded,
+                    title: 'Unable to load conversations',
+                    subtitle: '${snapshot.error}',
+                  ),
+                ),
               );
             }
 
@@ -56,137 +57,155 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: AppEmptyState(
-                    icon: Icons.chat_bubble_outline,
+                    icon: Icons.chat_bubble_outline_rounded,
                     title: 'No conversations yet',
-                    subtitle: 'Start a conversation to see it here',
+                    subtitle: 'Start a conversation to see it here.',
                   ),
                 ),
               );
             }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(14),
-              itemCount: conversations.length,
-              itemBuilder: (context, index) {
-                final conversation = conversations[index];
-                final currentUserId = _authService.currentUser?.uid ?? '';
-                final isLastMessageFromCurrentUser =
-                    conversation.lastMessage?.senderId == currentUserId;
-
-                final subtitle = conversation.lastMessage == null
-                    ? 'No messages'
-                    : isLastMessageFromCurrentUser
-                        ? 'You: ${conversation.lastMessage!.content}'
-                        : conversation.lastMessage!.content;
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    leading: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 2,
-                        ),
-                      ),
-                      child: conversation.userImage != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(50),
-                              child: Image.network(
-                                conversation.userImage!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return CircleAvatar(
-                                    backgroundColor: Theme.of(context).colorScheme.primary,
-                                    child: Text(
-                                      conversation.userName.isNotEmpty
-                                          ? conversation.userName[0].toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(color: Colors.white),
-                                    ),
-                                  );
-                                },
-                              ),
-                            )
-                          : CircleAvatar(
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              child: Text(
-                                conversation.userName.isNotEmpty
-                                    ? conversation.userName[0].toUpperCase()
-                                    : '?',
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            ),
-                    ),
-                    title: Text(conversation.userName),
-                    subtitle: Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (conversation.lastMessage != null)
-                          Text(
-                            _formatTime(conversation.lastMessage!.timestamp),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        if (conversation.unreadCount > 0)
-                          Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              conversation.unreadCount > 99
-                                  ? '99+'
-                                  : '${conversation.unreadCount}',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => MessagingScreen(
-                            userId: conversation.userId,
-                            userName: conversation.userName,
-                            userImage: conversation.userImage,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ).animate().fadeIn(delay: (50 * index).ms).slideX();
-              },
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 120),
+              children: [
+                const AppSectionHeader(
+                  eyebrow: 'Inbox',
+                  title: 'Recent conversations',
+                  subtitle:
+                      'Open the threads that need a reply and keep your work moving.',
+                ).animate().fadeIn(duration: 260.ms).slideY(begin: 0.08),
+                const SizedBox(height: 18),
+                for (var index = 0; index < conversations.length; index++) ...[
+                  _ConversationCard(
+                    conversation: conversations[index],
+                    currentUserId: _authService.currentUser?.uid ?? '',
+                  )
+                      .animate()
+                      .fadeIn(delay: Duration(milliseconds: 120 + (index * 70)))
+                      .slideY(begin: 0.08),
+                  if (index != conversations.length - 1)
+                    const SizedBox(height: 12),
+                ],
+              ],
             );
           },
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Add new conversation functionality
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('New conversation feature coming soon')),
+            const SnackBar(
+              content: Text('New conversation feature coming soon'),
+            ),
           );
         },
-        child: const Icon(Icons.add),
-      ).animate().scale(),
+        child: const Icon(Icons.add_comment_outlined),
+      ).animate().scale(duration: 320.ms),
+    );
+  }
+}
+
+class _ConversationCard extends StatelessWidget {
+  const _ConversationCard({
+    required this.conversation,
+    required this.currentUserId,
+  });
+
+  final Conversation conversation;
+  final String currentUserId;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isLastMessageFromCurrentUser =
+        conversation.lastMessage?.senderId == currentUserId;
+    final preview = conversation.lastMessage == null
+        ? 'No messages yet'
+        : isLastMessageFromCurrentUser
+            ? 'You: ${conversation.lastMessage!.content}'
+            : conversation.lastMessage!.content;
+
+    return AppGlassCard(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MessagingScreen(
+              userId: conversation.userId,
+              userName: conversation.userName,
+              userImage: conversation.userImage,
+            ),
+          ),
+        );
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _ConversationAvatar(
+            name: conversation.userName,
+            imageUrl: conversation.userImage,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        conversation.userName,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                      ),
+                    ),
+                    if (conversation.lastMessage != null)
+                      Text(
+                        _formatTime(conversation.lastMessage!.timestamp),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  preview,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    AppPill(
+                      label: conversation.unreadCount > 0
+                          ? '${conversation.unreadCount} unread'
+                          : 'Up to date',
+                      icon: conversation.unreadCount > 0
+                          ? Icons.mark_chat_unread_outlined
+                          : Icons.done_all_rounded,
+                      color: conversation.unreadCount > 0
+                          ? scheme.primary
+                          : scheme.secondary,
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 16,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -196,12 +215,68 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (difference.inDays > 0) {
       return '${dateTime.day}/${dateTime.month}';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Now';
     }
+    if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    }
+    if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    }
+    return 'Now';
+  }
+}
+
+class _ConversationAvatar extends StatelessWidget {
+  const _ConversationAvatar({
+    required this.name,
+    required this.imageUrl,
+  });
+
+  final String name;
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            scheme.primary.withValues(alpha: 0.18),
+            scheme.secondary.withValues(alpha: 0.12),
+          ],
+        ),
+      ),
+      child: imageUrl != null && imageUrl!.isNotEmpty
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Image.network(
+                imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _fallbackAvatar(context);
+                },
+              ),
+            )
+          : _fallbackAvatar(context),
+    );
+  }
+
+  Widget _fallbackAvatar(BuildContext context) {
+    return Center(
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+      ),
+    );
   }
 }

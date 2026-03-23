@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -60,62 +58,59 @@ class AppFloatingNavigationBar extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: shellGradient,
-              ),
-              border: Border.all(color: shellBorderColor),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: shellGradient,
             ),
-            child: SizedBox(
-              height: _barHeight,
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 28,
-                    right: 28,
-                    top: 0,
-                    child: Container(
-                      height: 1,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            topHighlight,
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 8),
-                      child: Row(
-                        children: [
-                          for (var index = 0; index < items.length; index++)
-                            Expanded(
-                              child: _AppNavigationBarItem(
-                                item: items[index],
-                                selected: selectedIndex == index,
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  onItemSelected(index);
-                                },
-                              ),
-                            ),
+            border: Border.all(color: shellBorderColor),
+          ),
+          child: SizedBox(
+            height: _barHeight,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 28,
+                  right: 28,
+                  top: 0,
+                  child: Container(
+                    height: 1,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          topHighlight,
+                          Colors.transparent,
                         ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+                Positioned.fill(
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    child: Row(
+                      children: [
+                        for (var index = 0; index < items.length; index++)
+                          Expanded(
+                            child: _AppNavigationBarItem(
+                              item: items[index],
+                              selected: selectedIndex == index,
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                onItemSelected(index);
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

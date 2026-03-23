@@ -24,12 +24,13 @@ class MessagingScreen extends StatefulWidget {
   State<MessagingScreen> createState() => _MessagingScreenState();
 }
 
-class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingObserver {
+class _MessagingScreenState extends State<MessagingScreen>
+    with WidgetsBindingObserver {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   StreamSubscription<List<Message>>? _messagesSubscription;
   List<Message> _messages = [];
-  List<Message> _pendingMessages = [];
+  final List<Message> _pendingMessages = [];
   bool _isLoading = true;
   bool _isSending = false;
   bool _userIsAtBottom = true;
@@ -44,11 +45,11 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
 
   void _scrollListener() {
     if (!_scrollController.hasClients) return;
-    
+
     // Check if user is near the bottom (within 100 pixels)
-    final isAtBottom = _scrollController.offset >= 
+    final isAtBottom = _scrollController.offset >=
         _scrollController.position.maxScrollExtent - 100;
-    
+
     if (_userIsAtBottom != isAtBottom) {
       setState(() {
         _userIsAtBottom = isAtBottom;
@@ -88,8 +89,9 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
           setState(() {
             _messages = messages;
             // Remove pending messages that have now been delivered (matching by content and sender)
-            _pendingMessages.removeWhere((pending) => 
-              messages.any((m) => m.content == pending.content && m.senderId == pending.senderId));
+            _pendingMessages.removeWhere((pending) => messages.any((m) =>
+                m.content == pending.content &&
+                m.senderId == pending.senderId));
             _isLoading = false;
           });
 
@@ -100,7 +102,7 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
           if (_isLoading || _userIsAtBottom) {
             _scrollToBottom();
           }
-          
+
           setState(() {
             _isLoading = false;
           });
@@ -124,7 +126,7 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
 
     final messageText = _messageController.text.trim();
     final currentUserId = FirebaseAuthService().currentUser?.uid ?? '';
-    
+
     // 1. Create temporary message for Optimistic UI
     final tempMessage = Message(
       id: 'pending_${DateTime.now().millisecondsSinceEpoch}',
@@ -140,6 +142,7 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
     _messageController.clear();
     setState(() {
       _pendingMessages.add(tempMessage);
+      _isSending = true;
       _userIsAtBottom = true; // Force scroll for user's own message
     });
     _scrollToBottom();
@@ -155,9 +158,11 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
         if (mounted) {
           setState(() {
             _pendingMessages.remove(tempMessage);
+            _isSending = false;
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['error'] ?? 'Failed to send message')),
+            SnackBar(
+                content: Text(result['error'] ?? 'Failed to send message')),
           );
         }
       }
@@ -165,10 +170,15 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
       if (mounted) {
         setState(() {
           _pendingMessages.remove(tempMessage);
+          _isSending = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
+      }
+    } finally {
+      if (mounted && _isSending) {
+        setState(() => _isSending = false);
       }
     }
   }
@@ -199,7 +209,7 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   width: 1,
                 ),
               ),
@@ -209,11 +219,15 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
                       child: Image.network(
                         widget.userImage!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => CircleAvatar(
+                        errorBuilder: (context, error, stackTrace) =>
+                            CircleAvatar(
                           backgroundColor: Colors.white24,
                           child: Text(
-                            widget.userName?.isNotEmpty == true ? widget.userName![0].toUpperCase() : '?',
-                            style: const TextStyle(color: Colors.white, fontSize: 16),
+                            widget.userName?.isNotEmpty == true
+                                ? widget.userName![0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 16),
                           ),
                         ),
                       ),
@@ -221,8 +235,11 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
                   : CircleAvatar(
                       backgroundColor: Colors.white24,
                       child: Text(
-                        widget.userName?.isNotEmpty == true ? widget.userName![0].toUpperCase() : '?',
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        widget.userName?.isNotEmpty == true
+                            ? widget.userName![0].toUpperCase()
+                            : '?',
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 16),
                       ),
                     ),
             ),
@@ -235,12 +252,6 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadMessages,
-          ),
-        ],
       ),
       body: AppGradientBackground(
         child: Column(
@@ -264,7 +275,10 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
                           padding: const EdgeInsets.all(16),
                           itemCount: _messages.length + _pendingMessages.length,
                           itemBuilder: (context, index) {
-                            final allMessages = [..._messages, ..._pendingMessages];
+                            final allMessages = [
+                              ..._messages,
+                              ..._pendingMessages
+                            ];
                             final message = allMessages[index];
                             final isSent = message.senderId == currentUserId;
 
@@ -274,7 +288,8 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
                               showDateHeader = true;
                             } else {
                               final previousMessage = allMessages[index - 1];
-                              if (!_isSameDay(message.timestamp, previousMessage.timestamp)) {
+                              if (!_isSameDay(message.timestamp,
+                                  previousMessage.timestamp)) {
                                 showDateHeader = true;
                               }
                             }
@@ -284,7 +299,8 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
                             if (index < allMessages.length - 1) {
                               final nextMessage = allMessages[index + 1];
                               if (nextMessage.senderId == message.senderId &&
-                                  _isSameMinute(message.timestamp, nextMessage.timestamp)) {
+                                  _isSameMinute(message.timestamp,
+                                      nextMessage.timestamp)) {
                                 showTime = false;
                               }
                             }
@@ -316,11 +332,11 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
               margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.88),
+                color: Colors.white.withValues(alpha: 0.88),
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 12,
                     offset: const Offset(0, 2),
                   ),
@@ -351,20 +367,47 @@ class _MessagingScreenState extends State<MessagingScreen> with WidgetsBindingOb
                       ),
                     ),
                     const SizedBox(width: 8),
-                    CircleAvatar(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      child: IconButton(
-                        icon: _isSending
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.2),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 48,
+                            height: 48,
+                          ),
+                          splashRadius: 24,
+                          icon: _isSending
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.send_rounded,
                                   color: Colors.white,
-                                  strokeWidth: 2,
+                                  size: 22,
                                 ),
-                              )
-                            : const Icon(Icons.send, color: Colors.white),
-                        onPressed: _isSending ? null : _sendMessage,
+                          onPressed: _isSending ? null : _sendMessage,
+                        ),
                       ),
                     ),
                   ],
@@ -395,8 +438,8 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final bubbleColor = isSent
         ? Theme.of(context).colorScheme.primary
-        : Colors.white.withOpacity(0.9);
-    
+        : Colors.white.withValues(alpha: 0.9);
+
     final isPending = message.id.startsWith('pending_');
 
     return Padding(
@@ -408,14 +451,19 @@ class _MessageBubble extends StatelessWidget {
         children: [
           if (!isSent) ...[
             Opacity(
-              opacity: showTime ? 1.0 : 0.0, // Only show avatar for the last message in a group
+              opacity: showTime
+                  ? 1.0
+                  : 0.0, // Only show avatar for the last message in a group
               child: Container(
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),
@@ -425,20 +473,35 @@ class _MessageBubble extends StatelessWidget {
                         child: Image.network(
                           receiverImage!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => CircleAvatar(
-                            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
+                          errorBuilder: (context, error, stackTrace) =>
+                              CircleAvatar(
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.14),
                             child: Text(
-                              message.senderName.isNotEmpty ? message.senderName[0].toUpperCase() : '?',
-                              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12),
+                              message.senderName.isNotEmpty
+                                  ? message.senderName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 12),
                             ),
                           ),
                         ),
                       )
                     : CircleAvatar(
-                        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.14),
                         child: Text(
-                          message.senderName.isNotEmpty ? message.senderName[0].toUpperCase() : '?',
-                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12),
+                          message.senderName.isNotEmpty
+                              ? message.senderName[0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: 12),
                         ),
                       ),
               ),
@@ -539,7 +602,7 @@ class _DateHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String formattedDate = _getFormattedDate(date);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: Row(
@@ -548,9 +611,9 @@ class _DateHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.grey.withOpacity(0.2)),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
             ),
             child: Text(
               formattedDate,
