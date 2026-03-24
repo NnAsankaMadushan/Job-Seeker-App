@@ -334,6 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         label: 'Full name',
                         icon: Icons.person_outline_rounded,
                         enabled: _isEditing,
+                        isRequired: true,
                       ),
                       const SizedBox(height: 14),
                       _buildTextField(
@@ -478,6 +479,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required bool enabled,
     TextInputType? keyboardType,
     int maxLines = 1,
+    bool isRequired = false,
   }) {
     return TextFormField(
       controller: controller,
@@ -489,7 +491,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         prefixIcon: Icon(icon),
       ),
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
+        if (isRequired && (value == null || value.trim().isEmpty)) {
           return 'Please enter $label';
         }
         return null;
