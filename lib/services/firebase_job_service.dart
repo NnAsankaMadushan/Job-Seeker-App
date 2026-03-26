@@ -376,18 +376,24 @@ class FirebaseJobService {
 
   // Get applications for a job
   Stream<List<JobApplication>> getJobApplications(String jobId) {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return Stream.value([]);
+
     return _firestore
         .collection('job_applications')
         .where('jobId', isEqualTo: jobId)
-        .orderBy('appliedAt', descending: true)
+        .where('providerId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return JobApplication.fromJson({
-          'id': doc.id,
-          ...doc.data(),
-        });
-      }).toList();
+      final applications = snapshot.docs
+          .map((doc) => JobApplication.fromJson({
+                'id': doc.id,
+                ...doc.data(),
+              }))
+          .toList();
+
+      applications.sort((a, b) => b.appliedAt.compareTo(a.appliedAt));
+      return applications;
     });
   }
 
@@ -399,15 +405,17 @@ class FirebaseJobService {
     return _firestore
         .collection('job_applications')
         .where('providerId', isEqualTo: userId)
-        .orderBy('appliedAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return JobApplication.fromJson({
-          'id': doc.id,
-          ...doc.data(),
-        });
-      }).toList();
+      final applications = snapshot.docs
+          .map((doc) => JobApplication.fromJson({
+                'id': doc.id,
+                ...doc.data(),
+              }))
+          .toList();
+
+      applications.sort((a, b) => b.appliedAt.compareTo(a.appliedAt));
+      return applications;
     });
   }
 

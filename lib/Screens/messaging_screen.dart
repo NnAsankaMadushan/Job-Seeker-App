@@ -85,12 +85,16 @@ class _MessagingScreenState extends State<MessagingScreen>
     setState(() => _isLoading = true);
 
     try {
+      // Ensure the parent conversation document exists before reading messages.
+      await FirebaseChatService().ensureConversationExists(widget.userId);
       await _messagesSubscription?.cancel();
 
       // Listen to messages stream
       _messagesSubscription =
-          FirebaseChatService().getMessages(widget.userId).listen((messages) {
-        if (mounted) {
+          FirebaseChatService().getMessages(widget.userId).listen(
+        (messages) {
+          if (!mounted) return;
+
           setState(() {
             _messages = messages;
             // Remove pending messages that have now been delivered (matching by content and sender)
@@ -111,8 +115,16 @@ class _MessagingScreenState extends State<MessagingScreen>
           setState(() {
             _isLoading = false;
           });
-        }
-      });
+        },
+        onError: (error, stackTrace) {
+          if (!mounted) return;
+
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error loading messages: $error')),
+          );
+        },
+      );
 
       // Mark messages as read immediately when screen opens
       await FirebaseChatService().markAsRead(widget.userId);

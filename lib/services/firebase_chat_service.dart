@@ -20,7 +20,6 @@ class FirebaseChatService {
     return _firestore
         .collection('conversations')
         .where('participants', arrayContains: userId)
-        .orderBy('lastMessageTime', descending: true)
         .snapshots()
         .asyncMap((snapshot) async {
       final conversations = await Future.wait(
@@ -30,7 +29,17 @@ class FirebaseChatService {
             )),
       );
 
-      return conversations.whereType<Conversation>().toList();
+      final sortedConversations =
+          conversations.whereType<Conversation>().toList()
+            ..sort((a, b) {
+              final aTime = a.lastMessage?.timestamp ??
+                  DateTime.fromMillisecondsSinceEpoch(0);
+              final bTime = b.lastMessage?.timestamp ??
+                  DateTime.fromMillisecondsSinceEpoch(0);
+              return bTime.compareTo(aTime);
+            });
+
+      return sortedConversations;
     });
   }
 
@@ -120,6 +129,27 @@ class FirebaseChatService {
         ),
       );
     });
+  }
+
+  Future<void> ensureConversationExists(String otherUserId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null || otherUserId.isEmpty) return;
+
+      final conversationId = _getConversationId(user.uid, otherUserId);
+      final conversationRef =
+          _firestore.collection('conversations').doc(conversationId);
+      final participants = [user.uid, otherUserId]..sort();
+
+      await conversationRef.set(
+        {
+          'participants': participants,
+        },
+        SetOptions(merge: true),
+      );
+    } catch (_) {
+      // Ignore setup errors here; the stream/send path will surface permission issues.
+    }
   }
 
   Future<Message> _buildMessage({

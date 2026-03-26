@@ -159,18 +159,27 @@ class _HomeContentState extends State<_HomeContent> {
 
   void _loadUnreadCounts() {
     final chatService = FirebaseChatService();
-    chatService.getConversations().listen((conversations) {
-      if (!mounted) {
-        return;
-      }
+    chatService.getConversations().listen(
+      (conversations) {
+        if (!mounted) {
+          return;
+        }
 
-      var total = 0;
-      for (final conversation in conversations) {
-        total += conversation.unreadCount;
-      }
+        var total = 0;
+        for (final conversation in conversations) {
+          total += conversation.unreadCount;
+        }
 
-      setState(() => _unreadMessageCount = total);
-    });
+        setState(() => _unreadMessageCount = total);
+      },
+      onError: (error, stackTrace) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() => _unreadMessageCount = 0);
+      },
+    );
 
     final notificationService = FirebaseNotificationService();
     notificationService.getUnreadCount().listen((count) {
