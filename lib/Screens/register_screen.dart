@@ -7,20 +7,26 @@ import 'package:image_picker/image_picker.dart';
 import 'package:job_seeker_app/Screens/Login_screen.dart';
 import 'package:job_seeker_app/Screens/home_page.dart';
 import 'package:job_seeker_app/services/cloudinary_service.dart';
+import 'package:job_seeker_app/services/app_settings_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 import 'package:job_seeker_app/theme/app_theme.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:job_seeker_app/models/user.dart' as app_user;
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({
     super.key,
     required this.email,
-    required this.password,
+    this.password,
+    this.initialUser,
+    this.isProfileSetupOnly = false,
   });
 
   final String email;
-  final String password;
+  final String? password;
+  final app_user.User? initialUser;
+  final bool isProfileSetupOnly;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -43,21 +49,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     'Other',
     'Prefer not to say',
   ];
-  final List<String> _userTypeOptions = const [
-    'Job Seeker',
-    'Job Provider',
-  ];
 
   bool _isLoading = false;
   String? _selectedGender;
-  String? _selectedUserType;
   DateTime? _selectedDate;
   File? _imageFile;
+  String? _currentProfileImageUrl;
 
   @override
   void initState() {
     super.initState();
     _emailController.text = widget.email;
+    if (widget.initialUser != null) {
+      _applyInitialUser(widget.initialUser!);
+    }
+
+    if (widget.isProfileSetupOnly && widget.initialUser == null) {
+      _loadCurrentUserData();
+    }
   }
 
   @override
@@ -69,6 +78,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _locationController.dispose();
     _dateController.dispose();
     super.dispose();
+  }
+
+  void _applyInitialUser(app_user.User user) {
+    _nameController.text = user.name;
+    _emailController.text = user.email.isNotEmpty ? user.email : widget.email;
+    _phoneController.text = user.phone;
+    _addressController.text = user.address ?? '';
+    _locationController.text = user.location ?? '';
+    _selectedGender = user.gender;
+    _selectedDate = _parseDateOfBirth(user.dateOfBirth);
+    _dateController.text =
+        _selectedDate == null ? '' : _formatDateForDisplay(_selectedDate!);
+    _currentProfileImageUrl = user.profileImage;
+  }
+
+  Future<void> _loadCurrentUserData() async {
+    final authService = FirebaseAuthService();
+    final user = await authService.getCurrentUserData();
+
+    if (!mounted || user == null) {
+      return;
+    }
+
+    setState(() {
+      _applyInitialUser(user);
+    });
+  }
+
+  DateTime? _parseDateOfBirth(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+
+    return DateTime.tryParse(value);
+  }
+
+  String _formatDateForDisplay(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   Future<void> _pickImage() async {
@@ -163,7 +210,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() {
       _selectedDate = picked;
-      _dateController.text = '${picked.day}/${picked.month}/${picked.year}';
+      _dateController.text = _formatDateForDisplay(picked);
     });
   }
 
@@ -181,29 +228,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    ),
-                    icon: const Icon(Icons.arrow_back_rounded),
-                  ).animate().fadeIn(duration: 240.ms),
+                  if (!widget.isProfileSetupOnly)
+                    IconButton(
+                      onPressed: () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const LoginScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                    ).animate().fadeIn(duration: 240.ms)
+                  else
+                    const SizedBox(height: 48),
                   const SizedBox(height: 8),
                   AppPill(
-                    label: 'Step 2 of 2',
+                    label: widget.isProfileSetupOnly
+                        ? 'Complete setup'
+                        : 'Step 2 of 2',
                     icon: Icons.workspace_premium_outlined,
                     color: scheme.primary,
                   ).animate().fadeIn(delay: 60.ms).slideY(begin: -0.08),
                   const SizedBox(height: 18),
                   Text(
-                    'Complete the profile that clients and workers will see first.',
+                    widget.isProfileSetupOnly
+                        ? 'Complete your profile'
+                        : 'Complete the profile that clients and workers will see first.',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                   ).animate().fadeIn(delay: 120.ms).slideY(begin: 0.08),
                   const SizedBox(height: 12),
                   Text(
-                    'Add the identity and location details that make your account feel credible from day one.',
+                    widget.isProfileSetupOnly
+                        ? 'Add the details needed to finish your first sign-in.'
+                        : 'Add the identity and location details that make your account feel credible from day one.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -238,9 +296,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           image: FileImage(_imageFile!),
                                           fit: BoxFit.cover,
                                         )
-                                      : null,
+                                      : _currentProfileImageUrl != null &&
+                                              _currentProfileImageUrl!
+                                                  .isNotEmpty
+                                          ? DecorationImage(
+                                              image: NetworkImage(
+                                                _currentProfileImageUrl!,
+                                              ),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : null,
                                 ),
-                                child: _imageFile == null
+                                child: _imageFile == null &&
+                                        (_currentProfileImageUrl == null ||
+                                            _currentProfileImageUrl!.isEmpty)
                                     ? Icon(
                                         Icons.add_a_photo_outlined,
                                         size: 36,
@@ -324,6 +393,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _emailController,
+                          enabled: !widget.isProfileSetupOnly,
                           decoration: const InputDecoration(
                             labelText: 'Email',
                             prefixIcon: Icon(Icons.alternate_email_rounded),
@@ -353,6 +423,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 14),
                         DropdownButtonFormField<String>(
+                          key: ValueKey(_selectedGender),
                           initialValue: _selectedGender,
                           decoration: const InputDecoration(
                             labelText: 'Gender',
@@ -404,10 +475,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const AppSectionHeader(
-                          eyebrow: 'Location',
-                          title: 'Add your working details',
+                          eyebrow: 'Profile',
+                          title: 'Add your details',
                           subtitle:
-                              'This helps match you with nearby work and clarifies what kind of account you are setting up.',
+                              'This helps complete your account and keeps your profile ready for use.',
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
@@ -438,31 +509,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 14),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedUserType,
-                          decoration: const InputDecoration(
-                            labelText: 'User type',
-                            prefixIcon: Icon(Icons.work_outline_rounded),
-                          ),
-                          items: _userTypeOptions
-                              .map(
-                                (type) => DropdownMenuItem(
-                                  value: type,
-                                  child: Text(type),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedUserType = value);
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select your user type';
-                            }
-                            return null;
-                          },
-                        ),
                         const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
@@ -479,8 +525,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     Icons.check_circle_outline_rounded),
                             label: Text(
                               _isLoading
-                                  ? 'Creating account...'
-                                  : 'Create account',
+                                  ? (widget.isProfileSetupOnly
+                                      ? 'Saving...'
+                                      : 'Creating account...')
+                                  : (widget.isProfileSetupOnly
+                                      ? 'Save and continue'
+                                      : 'Create account'),
                             ),
                           ),
                         ),
@@ -530,16 +580,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       final authService = FirebaseAuthService();
-      final result = await authService.register(
-        email: _emailController.text.trim(),
-        password: widget.password,
-        name: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        userType: _selectedUserType!,
-        location: _locationController.text.trim(),
-        address: _addressController.text.trim(),
-        profileImage: imageUrl,
-      );
+      final dateOfBirth = _selectedDate?.toIso8601String();
+
+      final bool success;
+      String? failureMessage;
+      if (widget.isProfileSetupOnly) {
+        success = await authService.completeProfile(
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          location: _locationController.text.trim(),
+          address: _addressController.text.trim(),
+          profileImage: imageUrl ?? _currentProfileImageUrl,
+          gender: _selectedGender,
+          dateOfBirth: dateOfBirth,
+        );
+        if (!success) {
+          failureMessage = 'Failed to complete profile';
+        }
+      } else {
+        final result = await authService.register(
+          email: _emailController.text.trim(),
+          password: widget.password!,
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          location: _locationController.text.trim(),
+          address: _addressController.text.trim(),
+          profileImage: imageUrl,
+          gender: _selectedGender,
+          dateOfBirth: dateOfBirth,
+        );
+        success = result['success'] == true;
+        if (!success) {
+          failureMessage = result['message']?.toString();
+        }
+      }
 
       if (!mounted) {
         return;
@@ -547,9 +621,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       setState(() => _isLoading = false);
 
-      if (result['success']) {
+      if (success) {
+        await AppSettingsService.instance.setSkipAppLockOnce(true);
+
+        if (!mounted) {
+          return;
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful')),
+          SnackBar(
+            content: Text(
+              widget.isProfileSetupOnly
+                  ? 'Profile completed successfully'
+                  : 'Registration successful',
+            ),
+          ),
         );
 
         Navigator.pushAndRemoveUntil(
@@ -562,7 +648,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Registration failed: ${result['message']}'),
+          content: Text(
+            failureMessage ??
+                (widget.isProfileSetupOnly
+                    ? 'Failed to complete profile'
+                    : 'Registration failed'),
+          ),
         ),
       );
     } catch (error) {

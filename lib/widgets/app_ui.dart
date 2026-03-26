@@ -291,7 +291,12 @@ class AppSectionHeader extends StatelessWidget {
         ),
         if (trailing != null) ...[
           const SizedBox(width: 12),
-          trailing!,
+          Flexible(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: trailing!,
+            ),
+          ),
         ],
       ],
     );
@@ -373,36 +378,63 @@ class AppPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tone = color ?? scheme.primary;
+    final textStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: tone,
+          fontWeight: FontWeight.w800,
+        );
+    final screenWidth = MediaQuery.maybeOf(context)?.size.width ?? 360.0;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: tone.withValues(alpha: 0.12),
-        border: Border.all(
-          color: tone.withValues(alpha: 0.18),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(
-              icon,
-              size: 16,
-              color: tone,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const horizontalPadding = 14.0;
+        const verticalPadding = 10.0;
+        const iconSize = 16.0;
+        const iconGap = 8.0;
+
+        final maxChipWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : screenWidth * 0.65;
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxChipWidth),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
             ),
-            const SizedBox(width: 8),
-          ],
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: tone,
-                  fontWeight: FontWeight.w800,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              color: tone.withValues(alpha: 0.12),
+              border: Border.all(
+                color: tone.withValues(alpha: 0.18),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(
+                    icon,
+                    size: iconSize,
+                    color: tone,
+                  ),
+                  const SizedBox(width: iconGap),
+                ],
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: textStyle,
+                  ),
                 ),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

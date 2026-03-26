@@ -41,7 +41,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   DateTime? _selectedDate;
   File? _imageFile;
   String? _currentProfileImageUrl;
-  String? _userType;
 
   @override
   void initState() {
@@ -63,8 +62,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _phoneController.text = user.phone;
       _addressController.text = user.address ?? '';
       _locationController.text = user.location ?? '';
+      _selectedGender = user.gender;
+      _selectedDate = _parseDateOfBirth(user.dateOfBirth);
+      _dateController.text =
+          _selectedDate == null ? '' : _formatDateForDisplay(_selectedDate!);
       _currentProfileImageUrl = user.profileImage;
-      _userType = user.userType;
     });
   }
 
@@ -161,8 +163,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() {
       _selectedDate = picked;
-      _dateController.text = '${picked.day}/${picked.month}/${picked.year}';
+      _dateController.text = _formatDateForDisplay(picked);
     });
+  }
+
+  DateTime? _parseDateOfBirth(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+
+    return DateTime.tryParse(value);
+  }
+
+  String _formatDateForDisplay(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   @override
@@ -293,7 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         runSpacing: 10,
                         children: [
                           AppPill(
-                            label: _userType ?? 'Member',
+                            label: 'Account',
                             icon: Icons.badge_outlined,
                             color: scheme.primary,
                           ),
@@ -355,6 +369,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 14),
                       if (_isEditing)
                         DropdownButtonFormField<String>(
+                          key: ValueKey(_selectedGender),
                           initialValue: _selectedGender,
                           decoration: const InputDecoration(
                             labelText: 'Gender',
@@ -539,6 +554,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         location: _locationController.text.trim(),
         address: _addressController.text.trim(),
         profileImage: imageUrl,
+        gender: _selectedGender,
+        dateOfBirth: _selectedDate?.toIso8601String(),
       );
 
       if (!mounted) {

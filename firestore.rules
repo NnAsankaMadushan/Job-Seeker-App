@@ -15,10 +15,91 @@ service cloud.firestore {
          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants);
     }
 
+    function jobDoc(jobId) {
+      return /databases/$(database)/documents/jobs/$(jobId);
+    }
+
+    function applicationDoc(applicationId) {
+      return /databases/$(database)/documents/job_applications/$(applicationId);
+    }
+
+    function isJobOwner(jobId) {
+      return isSignedIn() &&
+        exists(jobDoc(jobId)) &&
+        get(jobDoc(jobId)).data.providerId == request.auth.uid;
+    }
+
+    function isNotificationOwner() {
+      return isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
     match /users/{userId} {
       // Allow any signed-in user to see other users' basic profiles for chat
       allow read: if isSignedIn();
       allow write: if isOwner(userId);
+    }
+
+    match /jobs/{jobId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.providerId == request.auth.uid
+        && request.resource.data.status == 'available';
+
+      allow update, delete: if isJobOwner(jobId);
+    }
+
+    match /job_applications/{applicationId} {
+      allow read: if isSignedIn() && (
+        resource.data.applicantId == request.auth.uid ||
+        resource.data.providerId == request.auth.uid ||
+        (resource.data.jobId is string && isJobOwner(resource.data.jobId))
+      );
+
+      allow create: if isSignedIn()
+        && request.resource.data.applicantId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.jobId is string
+        && exists(jobDoc(request.resource.data.jobId))
+        && get(jobDoc(request.resource.data.jobId)).data.providerId == request.resource.data.providerId
+        && request.resource.data.providerId != request.auth.uid;
+
+      allow update: if isSignedIn()
+        && resource.data.jobId is string
+        && isJobOwner(resource.data.jobId)
+        && request.resource.data.jobId == resource.data.jobId
+        && request.resource.data.applicantId == resource.data.applicantId
+        && request.resource.data.providerId == resource.data.providerId;
+
+      allow delete: if isSignedIn()
+        && resource.data.jobId is string
+        && isJobOwner(resource.data.jobId);
+    }
+
+    match /notifications/{notificationId} {
+      allow read, delete: if isNotificationOwner();
+
+      allow update: if isNotificationOwner()
+        && request.resource.data.userId == resource.data.userId;
+
+      allow create: if isSignedIn()
+        && request.resource.data.type == 'application'
+        && (
+          (
+            request.resource.data.data is map &&
+            request.resource.data.data.jobId is string &&
+            request.resource.data.data.applicantId == request.auth.uid &&
+            exists(jobDoc(request.resource.data.data.jobId)) &&
+            get(jobDoc(request.resource.data.data.jobId)).data.providerId == request.resource.data.userId
+          ) ||
+          (
+            request.resource.data.data is map &&
+            request.resource.data.data.applicationId is string &&
+            exists(applicationDoc(request.resource.data.data.applicationId)) &&
+            get(applicationDoc(request.resource.data.data.applicationId)).data.providerId == request.auth.uid &&
+            get(applicationDoc(request.resource.data.data.applicationId)).data.applicantId == request.resource.data.userId
+          )
+        );
     }
 
     match /conversations/{conversationId} {

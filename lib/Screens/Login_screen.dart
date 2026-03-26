@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:job_seeker_app/Screens/app_lock_screen.dart';
 import 'package:job_seeker_app/Screens/Signup_screen.dart';
-import 'package:job_seeker_app/Screens/home_page.dart';
+import 'package:job_seeker_app/Screens/register_screen.dart';
+import 'package:job_seeker_app/models/user.dart' as app_user;
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 
@@ -28,10 +30,10 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _navigateToHome() {
+  void _navigateToAppLock() {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const HomePage()),
+      MaterialPageRoute(builder: (_) => const AppLockScreen()),
       (route) => false,
     );
   }
@@ -166,6 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ).animate().fadeIn(delay: 500.ms),
                         SocialLoginButtons(
                           isLoading: _isLoading,
+                          onFacebookPressed: _handleFacebookSignIn,
                           onGooglePressed: _handleGoogleSignIn,
                           onApplePressed: () =>
                               _showProviderNotConfigured('Apple'),
@@ -205,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login successful')),
       );
-      _navigateToHome();
+      _navigateToAppLock();
       return;
     }
 
@@ -236,7 +239,36 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Google sign-in successful')),
       );
-      _navigateToHome();
+      _navigateAfterSocialAuth(result);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${result['message']}')),
+    );
+  }
+
+  Future<void> _handleFacebookSignIn() async {
+    if (_isLoading) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final authService = FirebaseAuthService();
+    final result = await authService.signInWithFacebook();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Facebook sign-in successful')),
+      );
+      _navigateAfterSocialAuth(result);
       return;
     }
 
@@ -249,6 +281,29 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$provider sign-in is not configured yet.')),
     );
+  }
+
+  void _navigateAfterSocialAuth(Map<String, dynamic> result) {
+    final requiresProfileCompletion =
+        result['requiresProfileCompletion'] == true;
+    final user = result['user'] as app_user.User?;
+
+    if (requiresProfileCompletion) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RegisterScreen(
+            email: user?.email ?? '',
+            initialUser: user,
+            isProfileSetupOnly: true,
+          ),
+        ),
+        (route) => false,
+      );
+      return;
+    }
+
+    _navigateToAppLock();
   }
 }
 

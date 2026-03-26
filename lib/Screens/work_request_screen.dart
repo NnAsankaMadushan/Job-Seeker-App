@@ -70,14 +70,19 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                           children: [
                             CircleAvatar(
                               radius: 25,
-                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.14),
-                              backgroundImage: application.applicantImage != null
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.14),
+                              backgroundImage: application.applicantImage !=
+                                      null
                                   ? NetworkImage(application.applicantImage!)
                                   : null,
                               child: application.applicantImage == null
                                   ? Text(
                                       application.applicantName.isNotEmpty
-                                          ? application.applicantName[0].toUpperCase()
+                                          ? application.applicantName[0]
+                                              .toUpperCase()
                                           : '?',
                                       style: const TextStyle(
                                         color: Colors.teal,
@@ -102,9 +107,12 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                                   ),
                                   Text(
                                     'Applied: ${_formatDate(application.appliedAt)}',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.grey[600],
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: Colors.grey[600],
+                                        ),
                                   ),
                                 ],
                               ),
@@ -124,20 +132,47 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 16),
-                        // Action Buttons
-                        if (application.status == 'pending')
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MessagingScreen(
+                                    userId: application.applicantId,
+                                    userName: application.applicantName,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.chat_bubble_outline),
+                            label: const Text('Chat with applicant'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        if (application.status == 'pending') ...[
+                          const SizedBox(height: 12),
                           Row(
                             children: [
                               Expanded(
                                 child: ElevatedButton.icon(
                                   onPressed: () async {
-                                    final result = await _jobService.updateApplicationStatus(
+                                    final messenger =
+                                        ScaffoldMessenger.of(context);
+                                    final result = await _jobService
+                                        .updateApplicationStatus(
                                       applicationId: application.id,
                                       status: 'accepted',
                                     );
                                     if (mounted && result['success']) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Application accepted')),
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Application accepted'),
+                                        ),
                                       );
                                     }
                                   },
@@ -153,13 +188,18 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                               Expanded(
                                 child: ElevatedButton.icon(
                                   onPressed: () async {
-                                    final result = await _jobService.updateApplicationStatus(
+                                    final messenger =
+                                        ScaffoldMessenger.of(context);
+                                    final result = await _jobService
+                                        .updateApplicationStatus(
                                       applicationId: application.id,
                                       status: 'rejected',
                                     );
                                     if (mounted && result['success']) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Application rejected')),
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Application rejected'),
+                                        ),
                                       );
                                     }
                                   },
@@ -172,26 +212,8 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                                 ),
                               ),
                             ],
-                          )
-                        else
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => MessagingScreen(
-                                    userId: application.applicantId,
-                                    userName: application.applicantName,
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.chat_bubble_outline),
-                            label: const Text('Chat'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Theme.of(context).colorScheme.primary,
-                            ),
                           ),
+                        ],
                       ],
                     ),
                   ),
@@ -225,7 +247,7 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(

@@ -7,6 +7,7 @@ import 'package:job_seeker_app/services/firebase_chat_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MessagingScreen extends StatefulWidget {
   final String userId;
@@ -26,6 +27,7 @@ class MessagingScreen extends StatefulWidget {
 
 class _MessagingScreenState extends State<MessagingScreen>
     with WidgetsBindingObserver {
+  final FirebaseAuthService _authService = FirebaseAuthService();
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   StreamSubscription<List<Message>>? _messagesSubscription;
@@ -34,12 +36,15 @@ class _MessagingScreenState extends State<MessagingScreen>
   bool _isLoading = true;
   bool _isSending = false;
   bool _userIsAtBottom = true;
+  String? _recipientPhone;
+  bool _isLoadingRecipientPhone = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_scrollListener);
+    _loadRecipientPhone();
     _loadMessages();
   }
 
@@ -183,6 +188,88 @@ class _MessagingScreenState extends State<MessagingScreen>
     }
   }
 
+  Future<void> _loadRecipientPhone() async {
+    try {
+      final recipient = await _authService.getUserById(widget.userId);
+      if (!mounted) return;
+
+      final phone = (recipient?.phone ?? '').trim();
+      setState(() {
+        _recipientPhone = phone.isNotEmpty ? phone : null;
+        _isLoadingRecipientPhone = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _recipientPhone = null;
+        _isLoadingRecipientPhone = false;
+      });
+    }
+  }
+
+  Future<void> _callRecipient() async {
+    if (_isLoadingRecipientPhone) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Loading contact number...')),
+      );
+      return;
+    }
+
+    final phone = _recipientPhone;
+    if (phone == null || phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Phone number is not available for this contact.'),
+        ),
+      );
+      return;
+    }
+
+    final sanitizedPhone = _sanitizePhoneNumber(phone);
+    if (sanitizedPhone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Phone number is not available for this contact.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final launched = await launchUrl(
+        Uri(scheme: 'tel', path: sanitizedPhone),
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open the phone app on this device.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not start the call: $e')),
+      );
+    }
+  }
+
+  String _sanitizePhoneNumber(String phoneNumber) {
+    final cleaned = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+    if (cleaned.isEmpty) {
+      return '';
+    }
+
+    if (cleaned.startsWith('+')) {
+      return '+${cleaned.substring(1).replaceAll('+', '')}';
+    }
+
+    return cleaned.replaceAll('+', '');
+  }
+
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
@@ -197,7 +284,9 @@ class _MessagingScreenState extends State<MessagingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = FirebaseAuthService().currentUser?.uid ?? '';
+    final currentUserId = _authService.currentUser?.uid ?? '';
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -252,6 +341,15 @@ class _MessagingScreenState extends State<MessagingScreen>
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: _isLoadingRecipientPhone
+                ? 'Loading phone number'
+                : 'Call ${widget.userName ?? 'contact'}',
+            icon: const Icon(Icons.phone_outlined),
+            onPressed: _callRecipient,
+          ),
+        ],
       ),
       body: AppGradientBackground(
         child: Column(
@@ -348,14 +446,20 @@ class _MessagingScreenState extends State<MessagingScreen>
                     Expanded(
                       child: TextField(
                         controller: _messageController,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurface,
+                        ),
+                        cursorColor: colorScheme.primary,
                         decoration: InputDecoration(
                           hintText: 'Type a message...',
+                          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(24),
                             borderSide: BorderSide.none,
                           ),
                           filled: true,
-                          fillColor: Colors.grey[100],
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 12,

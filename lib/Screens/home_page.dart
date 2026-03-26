@@ -359,7 +359,7 @@ class _HomeContentState extends State<_HomeContent> {
                           runSpacing: 10,
                           children: [
                             AppPill(
-                              label: _currentUser?.userType ?? 'Workspace',
+                              label: 'Account',
                               icon: Icons.auto_awesome_rounded,
                               color: scheme.primary,
                             ),

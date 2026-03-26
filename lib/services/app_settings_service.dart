@@ -20,9 +20,12 @@ class AppSettingsService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   static const String _settingsRootKey = 'appSettings';
-  static const String _pushNotificationsEnabledKey = 'push_notifications_enabled';
-  static const String _inAppNotificationsEnabledKey = 'in_app_notifications_enabled';
+  static const String _pushNotificationsEnabledKey =
+      'push_notifications_enabled';
+  static const String _inAppNotificationsEnabledKey =
+      'in_app_notifications_enabled';
   static const String _appLockEnabledKey = 'app_lock_enabled';
+  static const String _skipAppLockOnceKey = 'skip_app_lock_once';
   static const String _appCredentialKey = 'app_credential_secret';
   static const String _appCredentialIsPinKey = 'app_credential_is_pin';
 
@@ -58,7 +61,8 @@ class AppSettingsService {
 
       final docRef = _firestore.collection('users').doc(uid);
       final flattenedUpdates = <String, dynamic>{
-        for (final entry in updates.entries) '$_settingsRootKey.${entry.key}': entry.value,
+        for (final entry in updates.entries)
+          '$_settingsRootKey.${entry.key}': entry.value,
       };
 
       try {
@@ -98,6 +102,15 @@ class AppSettingsService {
 
   Future<void> setAppLockEnabled(bool enabled) async {
     await _writeSettings({_appLockEnabledKey: enabled});
+  }
+
+  Future<bool> shouldSkipAppLockOnce() async {
+    final settings = await _readSettings();
+    return settings[_skipAppLockOnceKey] as bool? ?? false;
+  }
+
+  Future<void> setSkipAppLockOnce(bool enabled) async {
+    await _writeSettings({_skipAppLockOnceKey: enabled});
   }
 
   Future<AppCredential?> getAppCredential() async {

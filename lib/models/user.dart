@@ -4,9 +4,11 @@ class User {
   final String email;
   final String phone;
   final String? profileImage;
-  final String userType; // 'Job Seeker' or 'Job Provider'
   final String? location;
   final String? address;
+  final String? gender;
+  final String? dateOfBirth;
+  final bool? profileCompleted;
 
   User({
     required this.id,
@@ -14,9 +16,11 @@ class User {
     required this.email,
     required this.phone,
     this.profileImage,
-    required this.userType,
     this.location,
     this.address,
+    this.gender,
+    this.dateOfBirth,
+    this.profileCompleted,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -26,9 +30,11 @@ class User {
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
       profileImage: json['profileImage'],
-      userType: json['userType'] ?? 'Job Seeker',
       location: json['location'],
       address: json['address'],
+      gender: json['gender'],
+      dateOfBirth: json['dateOfBirth'],
+      profileCompleted: json['profileCompleted'],
     );
   }
 
@@ -39,12 +45,11 @@ class User {
       'email': email,
       'phone': phone,
       'profileImage': profileImage,
-      'userType': userType,
       'location': location,
       'address': address,
+      'gender': gender,
+      'dateOfBirth': dateOfBirth,
+      'profileCompleted': profileCompleted,
     };
   }
-
-  bool isJobSeeker() => userType == 'Job Seeker';
-  bool isJobProvider() => userType == 'Job Provider';
 }

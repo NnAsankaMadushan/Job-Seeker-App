@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:job_seeker_app/Screens/app_credential_setup_screen.dart';
 import 'package:job_seeker_app/services/app_settings_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -18,7 +17,6 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   bool _isOpeningSettings = false;
   bool _isUpdatingLock = false;
   bool _appLockEnabled = true;
-  AppCredential? _appCredential;
 
   @override
   void initState() {
@@ -28,7 +26,6 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
 
   Future<void> _loadSecuritySettings() async {
     final appLockEnabled = await _settingsService.isAppLockEnabled();
-    final appCredential = await _settingsService.getAppCredential();
 
     if (!mounted) {
       return;
@@ -36,7 +33,6 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
 
     setState(() {
       _appLockEnabled = appLockEnabled;
-      _appCredential = appCredential;
       _isLoading = false;
     });
   }
@@ -84,33 +80,6 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     );
   }
 
-  Future<void> _openCredentialSetup() async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const AppCredentialSetupScreen()),
-    );
-
-    if (result == true) {
-      await _loadSecuritySettings();
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('App lock credential saved')),
-      );
-    }
-  }
-
-  Future<void> _clearCredential() async {
-    await _settingsService.clearAppCredential();
-    if (!mounted) {
-      return;
-    }
-    setState(() => _appCredential = null);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('App PIN/password removed')),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -118,12 +87,6 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-
-    final credentialLabel = _appCredential == null
-        ? 'Not set. Uses device biometrics/screen lock.'
-        : _appCredential!.isPin
-        ? 'PIN is configured for this app'
-        : 'Password is configured for this app';
 
     return Scaffold(
       appBar: AppBar(
@@ -147,35 +110,27 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                       value: _appLockEnabled,
                       onChanged: _isUpdatingLock ? null : _toggleAppLock,
                       secondary: Icon(
-                        _appLockEnabled ? Icons.lock_outline : Icons.lock_open_outlined,
+                        _appLockEnabled
+                            ? Icons.lock_outline
+                            : Icons.lock_open_outlined,
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       title: const Text('Enable app lock'),
-                      subtitle: const Text('Require unlock when opening the app'),
+                      subtitle: const Text(
+                        'Require your device screen lock when opening the app',
+                      ),
                     ),
                     const Divider(height: 1),
                     ListTile(
                       leading: Icon(
-                        Icons.pin_outlined,
+                        Icons.fingerprint_outlined,
                         color: Theme.of(context).colorScheme.primary,
                       ),
-                      title: Text(_appCredential == null ? 'Set app PIN or password' : 'Change app PIN or password'),
-                      subtitle: Text(credentialLabel),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: _openCredentialSetup,
-                    ),
-                    if (_appCredential != null) ...[
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.redAccent,
-                        ),
-                        title: const Text('Remove app PIN/password'),
-                        subtitle: const Text('Revert to device biometrics/screen lock only'),
-                        onTap: _clearCredential,
+                      title: const Text('Device screen lock'),
+                      subtitle: const Text(
+                        'Uses your phone PIN, pattern, password, face, or fingerprint automatically.',
                       ),
-                    ],
+                    ),
                     const Divider(height: 1),
                     ListTile(
                       leading: Icon(
@@ -183,7 +138,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       title: const Text('Open device app settings'),
-                      subtitle: const Text('Manage permissions in system settings'),
+                      subtitle:
+                          const Text('Manage permissions in system settings'),
                       trailing: _isOpeningSettings
                           ? const SizedBox(
                               width: 18,

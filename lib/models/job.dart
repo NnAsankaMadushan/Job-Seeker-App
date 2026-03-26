@@ -3,6 +3,8 @@ class Job {
   final String title;
   final String description;
   final String location;
+  final double? locationLatitude;
+  final double? locationLongitude;
   final DateTime date;
   final String time;
   final double budget;
@@ -19,6 +21,8 @@ class Job {
     required this.title,
     required this.description,
     required this.location,
+    this.locationLatitude,
+    this.locationLongitude,
     required this.date,
     required this.time,
     required this.budget,
@@ -39,6 +43,8 @@ class Job {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       location: json['location'] ?? '',
+      locationLatitude: _parseNullableDouble(json['locationLatitude']),
+      locationLongitude: _parseNullableDouble(json['locationLongitude']),
       date: _parseDate(json['date']),
       time: json['time'] ?? '',
       budget: (json['budget'] ?? 0).toDouble(),
@@ -61,6 +67,22 @@ class Job {
           .toList();
     }
     return const [];
+  }
+
+  static double? _parseNullableDouble(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    if (value is String) {
+      return double.tryParse(value);
+    }
+
+    return null;
   }
 
   static DateTime _parseExpiry(dynamic expiresAtValue, DateTime createdAt) {
@@ -107,6 +129,8 @@ class Job {
       'title': title,
       'description': description,
       'location': location,
+      'locationLatitude': locationLatitude,
+      'locationLongitude': locationLongitude,
       'date': date.toIso8601String(),
       'time': time,
       'budget': budget,
@@ -124,5 +148,7 @@ class Job {
   bool isInProgress() => status == 'in_progress';
   bool isCompleted() => status == 'completed';
   bool isExpired() => DateTime.now().isAfter(expiresAt);
+  bool get hasExactLocation =>
+      locationLatitude != null && locationLongitude != null;
   bool get hasPhotos => imageUrls.isNotEmpty;
 }

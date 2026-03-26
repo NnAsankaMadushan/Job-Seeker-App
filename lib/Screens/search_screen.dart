@@ -164,14 +164,15 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                         ),
                         const SizedBox(height: 14),
-                        Row(
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
                           children: [
                             AppPill(
                               label: '${filteredJobs.length} results',
                               icon: Icons.dataset_outlined,
                               color: scheme.primary,
                             ),
-                            const SizedBox(width: 10),
                             if (_selectedCategory != null)
                               AppPill(
                                 label: _selectedCategory!,

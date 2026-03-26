@@ -101,43 +101,76 @@ class _JobCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppDecoratedIcon(
-                icon: Icons.work_outline_rounded,
-                color: scheme.primary,
-                backgroundColor: scheme.primary.withValues(alpha: 0.14),
-                size: 54,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 380;
+
+              final titleBlock = Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppDecoratedIcon(
+                    icon: Icons.work_outline_rounded,
+                    color: scheme.primary,
+                    backgroundColor: scheme.primary.withValues(alpha: 0.14),
+                    size: 54,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          job.title,
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Posted by ${job.providerName}',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+
+              if (!isCompact) {
+                return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      job.title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Posted by ${job.providerName}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
+                    titleBlock,
+                    const SizedBox(width: 10),
+                    AppPill(
+                      label: status.$1,
+                      icon: status.$2,
+                      color: status.$3,
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              AppPill(
-                label: status.$1,
-                icon: status.$2,
-                color: status.$3,
-              ),
-            ],
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  titleBlock,
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: AppPill(
+                      label: status.$1,
+                      icon: status.$2,
+                      color: status.$3,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 18),
           Wrap(

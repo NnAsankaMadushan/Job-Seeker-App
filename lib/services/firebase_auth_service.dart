@@ -37,10 +37,11 @@ class FirebaseAuthService {
     required String password,
     required String name,
     required String phone,
-    required String userType,
     String? location,
     String? address,
     String? profileImage,
+    String? gender,
+    String? dateOfBirth,
   }) async {
     try {
       // Create user in Firebase Auth
@@ -51,16 +52,24 @@ class FirebaseAuthService {
       );
 
       // Create user document in Firestore
-      await _firestore.collection('users').doc(credential.user!.uid).set({
+      final userData = <String, dynamic>{
         'name': name,
         'email': email,
         'phone': phone,
-        'userType': userType,
         'location': location,
         'address': address,
         'profileImage': profileImage,
+        'gender': gender,
+        'dateOfBirth': dateOfBirth,
+        'profileCompleted': true,
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      };
+      userData.removeWhere((_, value) => value == null);
+
+      await _firestore
+          .collection('users')
+          .doc(credential.user!.uid)
+          .set(userData);
 
       // Update display name
       await credential.user!.updateDisplayName(name);
@@ -73,10 +82,12 @@ class FirebaseAuthService {
           name: name,
           email: email,
           phone: phone,
-          userType: userType,
           location: location,
           address: address,
           profileImage: profileImage,
+          gender: gender,
+          dateOfBirth: dateOfBirth,
+          profileCompleted: true,
         ),
       };
     } on FirebaseAuthException catch (e) {
@@ -89,6 +100,45 @@ class FirebaseAuthService {
         'success': false,
         'message': 'An error occurred: $e',
       };
+    }
+  }
+
+  // Complete a social account profile after the first sign-in.
+  Future<bool> completeProfile({
+    required String name,
+    required String phone,
+    String? location,
+    String? address,
+    String? profileImage,
+    String? gender,
+    String? dateOfBirth,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      final Map<String, dynamic> updates = {
+        'name': name,
+        'phone': phone,
+        'location': location,
+        'address': address,
+        'profileImage': profileImage,
+        'gender': gender,
+        'dateOfBirth': dateOfBirth,
+        'profileCompleted': true,
+      };
+
+      updates.removeWhere((_, value) => value == null);
+
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set(updates, SetOptions(merge: true));
+
+      await user.updateDisplayName(name);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -194,9 +244,12 @@ class FirebaseAuthService {
         };
       }
 
+      final requiresProfileCompletion = await this.requiresProfileCompletion();
+
       return {
         'success': true,
         'message': 'Google sign-in successful',
+        'requiresProfileCompletion': requiresProfileCompletion,
         'user': app_user.User.fromJson({
           'id': doc.id,
           ...doc.data()!,
@@ -267,9 +320,13 @@ class FirebaseAuthService {
             };
           }
 
+          final requiresProfileCompletion =
+              await this.requiresProfileCompletion();
+
           return {
             'success': true,
             'message': 'Facebook sign-in successful',
+            'requiresProfileCompletion': requiresProfileCompletion,
             'user': app_user.User.fromJson({
               'id': doc.id,
               ...doc.data()!,
@@ -348,6 +405,32 @@ class FirebaseAuthService {
     }
   }
 
+  Future<app_user.User?> getUserById(String uid) async {
+    if (uid.isEmpty) return null;
+
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (!doc.exists) {
+        return null;
+      }
+
+      return app_user.User.fromJson({
+        'id': doc.id,
+        ...doc.data()!,
+      });
+    } on FirebaseException catch (e) {
+      debugPrint(
+        'Firestore unavailable while loading user $uid (${e.code}).',
+      );
+      return null;
+    } catch (e) {
+      debugPrint(
+        'Unexpected error while loading user $uid: $e',
+      );
+      return null;
+    }
+  }
+
   // Update user profile
   Future<bool> updateProfile({
     String? name,
@@ -355,6 +438,8 @@ class FirebaseAuthService {
     String? location,
     String? address,
     String? profileImage,
+    String? gender,
+    String? dateOfBirth,
   }) async {
     try {
       final user = _auth.currentUser;
@@ -366,6 +451,10 @@ class FirebaseAuthService {
       if (location != null) updates['location'] = location;
       if (address != null) updates['address'] = address;
       if (profileImage != null) updates['profileImage'] = profileImage;
+      if (gender != null) updates['gender'] = gender;
+      if (dateOfBirth != null) updates['dateOfBirth'] = dateOfBirth;
+
+      if (updates.isEmpty) return true;
 
       await _firestore.collection('users').doc(user.uid).update(updates);
 
@@ -375,6 +464,39 @@ class FirebaseAuthService {
 
       return true;
     } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> requiresProfileCompletion() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    try {
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (!doc.exists) {
+        return true;
+      }
+
+      final data = doc.data();
+      if (data == null) {
+        return true;
+      }
+
+      if (!data.containsKey('profileCompleted')) {
+        return false;
+      }
+
+      return data['profileCompleted'] == false;
+    } on FirebaseException catch (e) {
+      debugPrint(
+        'Firestore unavailable while checking profile completion (${e.code}).',
+      );
+      return false;
+    } catch (e) {
+      debugPrint(
+        'Unexpected error while checking profile completion: $e',
+      );
       return false;
     }
   }
@@ -394,10 +516,12 @@ class FirebaseAuthService {
         'name': nameToUse,
         'email': firebaseUser.email ?? '',
         'phone': firebaseUser.phoneNumber ?? '',
-        'userType': 'Job Seeker',
         'location': null,
         'address': null,
+        'gender': null,
+        'dateOfBirth': null,
         'profileImage': firebaseUser.photoURL,
+        'profileCompleted': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
       return;
@@ -428,10 +552,6 @@ class FirebaseAuthService {
     if ((currentProfileImage == null || currentProfileImage.trim().isEmpty) &&
         firebaseUser.photoURL != null) {
       updates['profileImage'] = firebaseUser.photoURL;
-    }
-
-    if (!data.containsKey('userType')) {
-      updates['userType'] = 'Job Seeker';
     }
 
     if (!data.containsKey('createdAt')) {
@@ -480,9 +600,11 @@ class FirebaseAuthService {
       email: user.email ?? '',
       phone: user.phoneNumber ?? '',
       profileImage: user.photoURL,
-      userType: 'Job Seeker',
       location: null,
       address: null,
+      gender: null,
+      dateOfBirth: null,
+      profileCompleted: null,
     );
   }
 

@@ -182,11 +182,37 @@ class FirebaseJobService {
     }
   }
 
+  // Watch the current user's application for a specific job.
+  Stream<JobApplication?> watchMyApplicationForJob(String jobId) {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return Stream.value(null);
+
+    return _firestore
+        .collection('job_applications')
+        .where('jobId', isEqualTo: jobId)
+        .where('applicantId', isEqualTo: userId)
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.docs.isEmpty) {
+        return null;
+      }
+
+      final doc = snapshot.docs.first;
+      return JobApplication.fromJson({
+        'id': doc.id,
+        ...doc.data(),
+      });
+    });
+  }
+
   // Post a new job
   Future<Map<String, dynamic>> postJob({
     required String title,
     required String description,
     required String location,
+    double? locationLatitude,
+    double? locationLongitude,
     required DateTime date,
     required String time,
     required double budget,
@@ -220,6 +246,8 @@ class FirebaseJobService {
         'title': title,
         'description': description,
         'location': location,
+        if (locationLatitude != null) 'locationLatitude': locationLatitude,
+        if (locationLongitude != null) 'locationLongitude': locationLongitude,
         'date': Timestamp.fromDate(date),
         'time': time,
         'budget': budget,

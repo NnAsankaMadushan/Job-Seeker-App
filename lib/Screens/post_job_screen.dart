@@ -2,9 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:job_seeker_app/Screens/job_location_picker_screen.dart';
 import 'package:job_seeker_app/services/cloudinary_service.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
@@ -29,19 +28,17 @@ class _PostJobScreenState extends State<PostJobScreen> {
   DateTime? _selectedEndDate;
   TimeOfDay? _selectedEndTime;
   bool _isPosting = false;
-  bool _isFetchingLocation = false;
+  JobLocationSelection? _selectedLocation;
   final List<File> _jobImages = [];
 
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _locationController = TextEditingController();
   final _budgetController = TextEditingController();
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _locationController.dispose();
     _budgetController.dispose();
     super.dispose();
   }
@@ -116,105 +113,24 @@ class _PostJobScreenState extends State<PostJobScreen> {
     );
   }
 
-  void _showSnackBarAction({
-    required String message,
-    required String actionLabel,
-    required VoidCallback onAction,
-  }) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        action: SnackBarAction(
-          label: actionLabel,
-          onPressed: onAction,
+  Future<void> _pickExactLocation() async {
+    FocusScope.of(context).unfocus();
+
+    final selection = await Navigator.of(context).push<JobLocationSelection>(
+      MaterialPageRoute(
+        builder: (_) => JobLocationPickerScreen(
+          initialSelection: _selectedLocation,
         ),
       ),
     );
-  }
 
-  Future<void> _useCurrentLocation() async {
-    if (_isFetchingLocation) return;
-    FocusScope.of(context).unfocus();
+    if (selection == null || !mounted) {
+      return;
+    }
 
     setState(() {
-      _isFetchingLocation = true;
+      _selectedLocation = selection;
     });
-
-    try {
-      final isLocationEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!isLocationEnabled) {
-        _showSnackBarAction(
-          message: 'Location services are disabled.',
-          actionLabel: 'Enable',
-          onAction: () {
-            Geolocator.openLocationSettings();
-          },
-        );
-        return;
-      }
-
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.denied) {
-        _showSnackBar('Location permission denied.');
-        return;
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        _showSnackBarAction(
-          message: 'Location permission permanently denied.',
-          actionLabel: 'Settings',
-          onAction: () {
-            Geolocator.openAppSettings();
-          },
-        );
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      String resolvedLocation;
-      if (placemarks.isNotEmpty) {
-        final place = placemarks.first;
-        final addressParts = <String>[
-          if (place.subLocality?.trim().isNotEmpty ?? false)
-            place.subLocality!.trim(),
-          if (place.locality?.trim().isNotEmpty ?? false)
-            place.locality!.trim(),
-          if (place.administrativeArea?.trim().isNotEmpty ?? false)
-            place.administrativeArea!.trim(),
-          if (place.country?.trim().isNotEmpty ?? false) place.country!.trim(),
-        ];
-
-        resolvedLocation = addressParts.join(', ');
-      } else {
-        resolvedLocation =
-            '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
-      }
-
-      _locationController.text = resolvedLocation;
-    } catch (_) {
-      _showSnackBar('Unable to fetch current location. Please try again.');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isFetchingLocation = false;
-        });
-      }
-    }
   }
 
   Future<void> _pickJobImages() async {
@@ -472,28 +388,81 @@ class _PostJobScreenState extends State<PostJobScreen> {
                                     ),
                           ),
                           const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _locationController,
-                            label: 'Location',
-                            icon: Icons.location_on_outlined,
-                            hint: 'Enter job location',
-                            suffixIcon: _isFetchingLocation
-                                ? const Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: SizedBox(
-                                      height: 18,
-                                      width: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                          AppGlassCard(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    AppDecoratedIcon(
+                                      icon: Icons.map_outlined,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      backgroundColor: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withValues(alpha: 0.14),
+                                      size: 50,
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Location',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  )
-                                : IconButton(
-                                    tooltip: 'Use current location',
-                                    onPressed: _useCurrentLocation,
-                                    icon:
-                                        const Icon(Icons.my_location_outlined),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed:
+                                        _isPosting ? null : _pickExactLocation,
+                                    icon: Icon(
+                                      _selectedLocation == null
+                                          ? Icons.add_location_alt_outlined
+                                          : Icons.edit_location_alt_outlined,
+                                    ),
+                                    label: Text(
+                                      _selectedLocation == null
+                                          ? 'Choose on map'
+                                          : 'Change location',
+                                    ),
                                   ),
+                                ),
+                                const SizedBox(height: 14),
+                                Text(
+                                  _selectedLocation == null
+                                      ? 'Choose a point on the map to save the exact location.'
+                                      : _selectedLocation!.address,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Row(
@@ -603,10 +572,10 @@ class _PostJobScreenState extends State<PostJobScreen> {
                           _buildTextField(
                             controller: _budgetController,
                             label: 'Budget',
-                            icon: Icons.attach_money_outlined,
+                            icon: Icons.payments_outlined,
                             hint: 'Enter budget',
                             keyboardType: TextInputType.number,
-                            prefixText: '\$ ',
+                            prefixText: 'LKR ',
                           ),
                         ],
                       ),
@@ -712,6 +681,15 @@ class _PostJobScreenState extends State<PostJobScreen> {
       return;
     }
 
+    if (_selectedLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please pick the exact job location on the map'),
+        ),
+      );
+      return;
+    }
+
     DateTime? expiresAt;
     final isPartialEndInput =
         (_selectedEndDate == null) != (_selectedEndTime == null);
@@ -744,7 +722,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
       final result = await _jobService.postJob(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
-        location: _locationController.text.trim(),
+        location: _selectedLocation!.address,
+        locationLatitude: _selectedLocation!.latitude,
+        locationLongitude: _selectedLocation!.longitude,
         date: _selectedDate!,
         time: time,
         budget: budget,
