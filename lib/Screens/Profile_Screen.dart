@@ -5,8 +5,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:job_seeker_app/Screens/settings_screen.dart';
+import 'package:job_seeker_app/models/applicant_rating_summary.dart';
+import 'package:job_seeker_app/models/user_rating.dart';
 import 'package:job_seeker_app/services/cloudinary_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
+import 'package:job_seeker_app/services/firebase_rating_service.dart';
 import 'package:job_seeker_app/theme/app_theme.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 
@@ -27,6 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _addressController = TextEditingController();
   final _locationController = TextEditingController();
   final _dateController = TextEditingController();
+  final _ratingService = FirebaseRatingService();
 
   final List<String> _genderOptions = const [
     'Male',
@@ -41,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   DateTime? _selectedDate;
   File? _imageFile;
   String? _currentProfileImageUrl;
+  String? _currentUserId;
 
   @override
   void initState() {
@@ -67,6 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _dateController.text =
           _selectedDate == null ? '' : _formatDateForDisplay(_selectedDate!);
       _currentProfileImageUrl = user.profileImage;
+      _currentUserId = user.id;
     });
   }
 
@@ -337,6 +343,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const AppSectionHeader(
+                        eyebrow: 'Reputation',
+                        title: 'Your ratings',
+                        subtitle:
+                            'Feedback from job providers is shown here so you can track your reputation.',
+                      ),
+                      const SizedBox(height: 18),
+                      _buildRatingsSection(context),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 80.ms).slideY(begin: 0.08),
+                const SizedBox(height: 24),
+                AppGlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const AppSectionHeader(
                         eyebrow: 'Identity',
                         title: 'Personal details',
                         subtitle:
@@ -476,6 +498,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildRatingsSection(BuildContext context) {
+    final userId = _currentUserId;
+    if (userId == null || userId.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return StreamBuilder<List<UserRating>>(
+      stream: _ratingService.watchUserRatings(userId, limit: 5),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Text(
+            'Unable to load your ratings right now.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          );
+        }
+
+        final ratings = snapshot.data ?? const <UserRating>[];
+        if (ratings.isEmpty) {
+          return const AppEmptyState(
+            icon: Icons.star_outline_rounded,
+            title: 'No ratings yet',
+            subtitle:
+                'Once a job provider rates one of your applications, it will appear here.',
+          );
+        }
+
+        final summary = ApplicantRatingSummary.fromRatings(
+          ratings.map((rating) => rating.rating),
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _RatingMetricCard(
+                    icon: Icons.star_rounded,
+                    label: 'Average',
+                    value: summary.averageLabel,
+                    suffix: '/5',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _RatingMetricCard(
+                    icon: Icons.reviews_outlined,
+                    label: 'Reviews',
+                    value: summary.ratingCount.toString(),
+                    suffix: summary.ratingCount == 1 ? 'entry' : 'entries',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Recent feedback',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            for (final rating in ratings) ...[
+              _UserRatingCard(rating: rating),
+              const SizedBox(height: 10),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
   ImageProvider<Object>? get _profileImageProvider {
     if (_imageFile != null) {
       return FileImage(_imageFile!);
@@ -590,6 +696,170 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SnackBar(content: Text('Error updating profile: $error')),
       );
     }
+  }
+}
+
+class _RatingMetricCard extends StatelessWidget {
+  const _RatingMetricCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.suffix,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final String suffix;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: scheme.surface.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? 0.34 : 0.54,
+        ),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: scheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(width: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  suffix,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UserRatingCard extends StatelessWidget {
+  const _UserRatingCard({
+    required this.rating,
+  });
+
+  final UserRating rating;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: scheme.surface.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? 0.34 : 0.54,
+        ),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < rating.rating
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
+                    size: 16,
+                    color: const Color(0xFFF59E0B),
+                  );
+                }),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${rating.rating}/5',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const Spacer(),
+              Text(
+                _formatDate(rating.createdAt),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            rating.jobTitle.isNotEmpty ? rating.jobTitle : 'Job feedback',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Rated by ${rating.raterName}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+          if (rating.feedback.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              rating.feedback.trim(),
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    }
+    if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    }
+    if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    }
+    return 'Just now';
   }
 }
 

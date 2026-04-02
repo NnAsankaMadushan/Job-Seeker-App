@@ -1,7 +1,9 @@
 import 'package:job_seeker_app/Screens/messaging_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
+import 'package:job_seeker_app/models/applicant_rating_summary.dart';
 import 'package:job_seeker_app/models/job_application.dart';
+import 'package:job_seeker_app/services/firebase_rating_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 
 class WorkerRequestsScreen extends StatefulWidget {
@@ -15,6 +17,133 @@ class WorkerRequestsScreen extends StatefulWidget {
 
 class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
   final FirebaseJobService _jobService = FirebaseJobService();
+  final FirebaseRatingService _ratingService = FirebaseRatingService();
+  final Map<String, Future<ApplicantRatingSummary>> _ratingSummaryCache = {};
+
+  Future<ApplicantRatingSummary> _ratingSummaryFor(String applicantId) {
+    return _ratingSummaryCache.putIfAbsent(
+      applicantId,
+      () => _ratingService.getApplicantRatingSummary(applicantId),
+    );
+  }
+
+  Future<void> _showFeedbackDialog(JobApplication application) async {
+    final feedbackController = TextEditingController();
+    var selectedRating = 0;
+
+    try {
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: Text('Rate ${application.applicantName}'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Choose a star rating for this applicant.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          final starValue = index + 1;
+                          final isSelected = starValue <= selectedRating;
+
+                          return IconButton(
+                            onPressed: () {
+                              setDialogState(() {
+                                selectedRating = starValue;
+                              });
+                            },
+                            icon: Icon(
+                              isSelected
+                                  ? Icons.star_rounded
+                                  : Icons.star_border_rounded,
+                              color: const Color(0xFFF59E0B),
+                              size: 30,
+                            ),
+                            tooltip:
+                                '$starValue star${starValue == 1 ? '' : 's'}',
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: feedbackController,
+                        maxLines: 3,
+                        maxLength: 300,
+                        decoration: const InputDecoration(
+                          labelText: 'Feedback',
+                          hintText: 'Optional note about this applicant',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: selectedRating == 0
+                        ? null
+                        : () {
+                            Navigator.pop(dialogContext, {
+                              'rating': selectedRating,
+                              'feedback': feedbackController.text.trim(),
+                            });
+                          },
+                    child: const Text('Submit'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (result == null || !mounted) {
+        return;
+      }
+
+      final rating = result['rating'] as int;
+      final feedback = (result['feedback'] ?? '').toString();
+
+      final messenger = ScaffoldMessenger.of(context);
+      final submitResult = await _ratingService.submitApplicantRating(
+        applicationId: application.id,
+        rating: rating,
+        feedback: feedback,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (submitResult['success'] == true) {
+        setState(() {
+          _ratingSummaryCache.remove(application.applicantId);
+        });
+      }
+
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            submitResult['message'] ?? 'Unable to submit feedback',
+          ),
+        ),
+      );
+    } finally {
+      feedbackController.dispose();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +187,8 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
               itemCount: applications.length,
               itemBuilder: (context, index) {
                 final application = applications[index];
+                final applicantRatingFuture =
+                    _ratingSummaryFor(application.applicantId);
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   child: Padding(
@@ -105,6 +236,11 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                                           fontWeight: FontWeight.bold,
                                         ),
                                   ),
+                                  const SizedBox(height: 6),
+                                  _ApplicantRatingSummary(
+                                    summaryFuture: applicantRatingFuture,
+                                  ),
+                                  const SizedBox(height: 4),
                                   Text(
                                     'Applied: ${_formatDate(application.appliedAt)}',
                                     style: Theme.of(context)
@@ -214,6 +350,18 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                             ],
                           ),
                         ],
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _showFeedbackDialog(application),
+                            icon: const Icon(Icons.star_rounded),
+                            label: const Text('Give feedback'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFF59E0B),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -274,5 +422,101 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
     } else {
       return 'Just now';
     }
+  }
+}
+
+class _ApplicantRatingSummary extends StatelessWidget {
+  const _ApplicantRatingSummary({
+    required this.summaryFuture,
+  });
+
+  final Future<ApplicantRatingSummary> summaryFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return FutureBuilder<ApplicantRatingSummary>(
+      future: summaryFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Row(
+            children: [
+              SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: scheme.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Loading applicant rating...',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Text(
+            'Ratings unavailable',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          );
+        }
+
+        final summary = snapshot.data ?? const ApplicantRatingSummary.empty();
+
+        if (!summary.hasRatings) {
+          return Row(
+            children: [
+              const Icon(
+                Icons.star_border_rounded,
+                size: 16,
+                color: Color(0xFFF59E0B),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'No ratings yet',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          );
+        }
+
+        final starCount = summary.averageRating.round().clamp(0, 5);
+
+        return Row(
+          children: [
+            Row(
+              children: List.generate(5, (index) {
+                return Icon(
+                  index < starCount
+                      ? Icons.star_rounded
+                      : Icons.star_border_rounded,
+                  size: 16,
+                  color: const Color(0xFFF59E0B),
+                );
+              }),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${summary.averageLabel}/5 - ${summary.ratingCount} review${summary.ratingCount == 1 ? '' : 's'}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

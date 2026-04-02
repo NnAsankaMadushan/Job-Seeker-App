@@ -34,6 +34,7 @@ class _MessagingScreenState extends State<MessagingScreen>
   List<Message> _messages = [];
   final List<Message> _pendingMessages = [];
   bool _isLoading = true;
+  String? _loadError;
   bool _isSending = false;
   bool _userIsAtBottom = true;
   String? _recipientPhone;
@@ -82,16 +83,19 @@ class _MessagingScreenState extends State<MessagingScreen>
   }
 
   Future<void> _loadMessages() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
 
     try {
-      // Ensure the parent conversation document exists before reading messages.
-      await FirebaseChatService().ensureConversationExists(widget.userId);
+      final chatService = FirebaseChatService();
       await _messagesSubscription?.cancel();
 
       // Listen to messages stream
-      _messagesSubscription =
-          FirebaseChatService().getMessages(widget.userId).listen(
+      _messagesSubscription = chatService.getMessages(widget.userId).listen(
         (messages) {
           if (!mounted) return;
 
@@ -102,34 +106,49 @@ class _MessagingScreenState extends State<MessagingScreen>
                 m.content == pending.content &&
                 m.senderId == pending.senderId));
             _isLoading = false;
+            _loadError = null;
           });
 
           // Mark messages as read whenever messages update
-          FirebaseChatService().markAsRead(widget.userId);
+          chatService.markAsRead(widget.userId);
 
           // Auto-scroll to bottom only if user is already at the bottom OR it's the very first load
           if (_isLoading || _userIsAtBottom) {
             _scrollToBottom();
           }
 
-          setState(() {
-            _isLoading = false;
-          });
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
         },
         onError: (error, stackTrace) {
           if (!mounted) return;
 
-          setState(() => _isLoading = false);
+          setState(() {
+            _isLoading = false;
+            _loadError = error.toString();
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error loading messages: $error')),
           );
         },
       );
 
+      // Create the parent conversation doc in the background so it does not
+      // block the first messages snapshot if Firestore is slow or offline.
+      unawaited(chatService.ensureConversationExists(widget.userId));
+
       // Mark messages as read immediately when screen opens
-      await FirebaseChatService().markAsRead(widget.userId);
+      await chatService.markAsRead(widget.userId);
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _loadError = e.toString();
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading messages: $e')),
@@ -369,74 +388,97 @@ class _MessagingScreenState extends State<MessagingScreen>
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _messages.isEmpty && _pendingMessages.isEmpty
-                      ? const Center(
+                  : (_loadError != null &&
+                          _messages.isEmpty &&
+                          _pendingMessages.isEmpty)
+                      ? Center(
                           child: Padding(
-                            padding: EdgeInsets.all(24),
+                            padding: const EdgeInsets.all(24),
                             child: AppEmptyState(
-                              icon: Icons.chat_bubble_outline,
-                              title: 'No messages yet',
-                              subtitle: 'Start the conversation',
+                              icon: Icons.cloud_off_outlined,
+                              title: 'Unable to load chat',
+                              subtitle:
+                                  'Firestore is offline or the conversation is not reachable right now.',
+                              action: ElevatedButton.icon(
+                                onPressed: _loadMessages,
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text('Retry'),
+                              ),
                             ),
                           ),
                         )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _messages.length + _pendingMessages.length,
-                          itemBuilder: (context, index) {
-                            final allMessages = [
-                              ..._messages,
-                              ..._pendingMessages
-                            ];
-                            final message = allMessages[index];
-                            final isSent = message.senderId == currentUserId;
+                      : _messages.isEmpty && _pendingMessages.isEmpty
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24),
+                                child: AppEmptyState(
+                                  icon: Icons.chat_bubble_outline,
+                                  title: 'No messages yet',
+                                  subtitle: 'Start the conversation',
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.all(16),
+                              itemCount:
+                                  _messages.length + _pendingMessages.length,
+                              itemBuilder: (context, index) {
+                                final allMessages = [
+                                  ..._messages,
+                                  ..._pendingMessages
+                                ];
+                                final message = allMessages[index];
+                                final isSent =
+                                    message.senderId == currentUserId;
 
-                            // Show date header if it's the first message or if the date changed
-                            bool showDateHeader = false;
-                            if (index == 0) {
-                              showDateHeader = true;
-                            } else {
-                              final previousMessage = allMessages[index - 1];
-                              if (!_isSameDay(message.timestamp,
-                                  previousMessage.timestamp)) {
-                                showDateHeader = true;
-                              }
-                            }
+                                // Show date header if it's the first message or if the date changed
+                                bool showDateHeader = false;
+                                if (index == 0) {
+                                  showDateHeader = true;
+                                } else {
+                                  final previousMessage =
+                                      allMessages[index - 1];
+                                  if (!_isSameDay(message.timestamp,
+                                      previousMessage.timestamp)) {
+                                    showDateHeader = true;
+                                  }
+                                }
 
-                            //Logic to show time only for the last message in a minute-group from same sender
-                            bool showTime = true;
-                            if (index < allMessages.length - 1) {
-                              final nextMessage = allMessages[index + 1];
-                              if (nextMessage.senderId == message.senderId &&
-                                  _isSameMinute(message.timestamp,
-                                      nextMessage.timestamp)) {
-                                showTime = false;
-                              }
-                            }
+                                //Logic to show time only for the last message in a minute-group from same sender
+                                bool showTime = true;
+                                if (index < allMessages.length - 1) {
+                                  final nextMessage = allMessages[index + 1];
+                                  if (nextMessage.senderId ==
+                                          message.senderId &&
+                                      _isSameMinute(message.timestamp,
+                                          nextMessage.timestamp)) {
+                                    showTime = false;
+                                  }
+                                }
 
-                            final bubble = _MessageBubble(
-                              message: message,
-                              isSent: isSent,
-                              showTime: showTime,
-                              receiverImage: widget.userImage,
-                            ).animate().fadeIn().slideX(
-                                  begin: isSent ? 0.2 : -0.2,
-                                  duration: 300.ms,
-                                );
+                                final bubble = _MessageBubble(
+                                  message: message,
+                                  isSent: isSent,
+                                  showTime: showTime,
+                                  receiverImage: widget.userImage,
+                                ).animate().fadeIn().slideX(
+                                      begin: isSent ? 0.2 : -0.2,
+                                      duration: 300.ms,
+                                    );
 
-                            if (showDateHeader) {
-                              return Column(
-                                children: [
-                                  _DateHeader(date: message.timestamp),
-                                  bubble,
-                                ],
-                              );
-                            }
+                                if (showDateHeader) {
+                                  return Column(
+                                    children: [
+                                      _DateHeader(date: message.timestamp),
+                                      bubble,
+                                    ],
+                                  );
+                                }
 
-                            return bubble;
-                          },
-                        ),
+                                return bubble;
+                              },
+                            ),
             ),
             Container(
               margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
@@ -717,6 +759,9 @@ class _DateHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     String formattedDate = _getFormattedDate(date);
 
     return Padding(
@@ -727,14 +772,22 @@ class _DateHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: isDark
+                  ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.96)
+                  : colorScheme.surface.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(
+                  alpha: isDark ? 0.95 : 0.8,
+                ),
+              ),
             ),
             child: Text(
               formattedDate,
-              style: TextStyle(
-                color: Colors.grey[600],
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: isDark
+                    ? colorScheme.onSurface
+                    : colorScheme.onSurfaceVariant,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),

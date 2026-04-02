@@ -33,6 +33,10 @@ service cloud.firestore {
       return /databases/$(database)/documents/job_applications/$(applicationId);
     }
 
+    function ratingDoc(ratingId) {
+      return /databases/$(database)/documents/user_ratings/$(ratingId);
+    }
+
     function isJobOwner(jobId) {
       return isSignedIn() &&
         exists(jobDoc(jobId)) &&
@@ -84,6 +88,77 @@ service cloud.firestore {
       allow delete: if isSignedIn()
         && resource.data.jobId is string
         && isJobOwner(resource.data.jobId);
+    }
+
+    match /user_ratings/{ratingId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly([
+          'applicationId',
+          'jobId',
+          'jobTitle',
+          'ratedUserId',
+          'raterId',
+          'raterName',
+          'rating',
+          'feedback',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.applicationId == ratingId
+        && request.resource.data.raterId == request.auth.uid
+        && request.resource.data.ratedUserId is string
+        && request.resource.data.jobId is string
+        && request.resource.data.jobTitle is string
+        && request.resource.data.jobTitle == get(jobDoc(request.resource.data.jobId)).data.title
+        && request.resource.data.raterName is string
+        && request.resource.data.feedback is string
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && exists(applicationDoc(request.resource.data.applicationId))
+        && exists(jobDoc(request.resource.data.jobId))
+        && get(applicationDoc(request.resource.data.applicationId)).data.providerId == request.auth.uid
+        && get(applicationDoc(request.resource.data.applicationId)).data.jobId == request.resource.data.jobId
+        && get(applicationDoc(request.resource.data.applicationId)).data.applicantId == request.resource.data.ratedUserId
+        && get(jobDoc(request.resource.data.jobId)).data.providerId == request.auth.uid;
+
+      allow update: if isSignedIn()
+        && resource.data.raterId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'applicationId',
+          'jobId',
+          'jobTitle',
+          'ratedUserId',
+          'raterId',
+          'raterName',
+          'rating',
+          'feedback',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.applicationId == resource.data.applicationId
+        && request.resource.data.jobId == resource.data.jobId
+        && request.resource.data.jobTitle == resource.data.jobTitle
+        && request.resource.data.ratedUserId == resource.data.ratedUserId
+        && request.resource.data.raterId == resource.data.raterId
+        && request.resource.data.raterName == resource.data.raterName
+        && request.resource.data.feedback is string
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && exists(applicationDoc(resource.data.applicationId))
+        && exists(jobDoc(resource.data.jobId))
+        && get(applicationDoc(resource.data.applicationId)).data.providerId == request.auth.uid
+        && get(applicationDoc(resource.data.applicationId)).data.applicantId == resource.data.ratedUserId
+        && get(jobDoc(resource.data.jobId)).data.providerId == request.auth.uid;
+
+      allow delete: if false;
     }
 
     match /notifications/{notificationId} {
