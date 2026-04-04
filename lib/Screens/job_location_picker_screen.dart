@@ -258,6 +258,8 @@ class _JobLocationPickerScreenState extends State<JobLocationPickerScreen> {
   }
 
   void _confirmSelection() {
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final address =
         !_isResolvingAddress && _resolvedAddress?.trim().isNotEmpty == true
             ? _resolvedAddress!.trim()

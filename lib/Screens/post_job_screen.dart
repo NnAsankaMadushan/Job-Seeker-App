@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:job_seeker_app/Screens/job_location_picker_screen.dart';
 import 'package:job_seeker_app/services/cloudinary_service.dart';
 import 'package:job_seeker_app/services/firebase_job_service.dart';
@@ -29,7 +30,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
   TimeOfDay? _selectedEndTime;
   bool _isPosting = false;
   JobLocationSelection? _selectedLocation;
-  final List<File> _jobImages = [];
+  final List<XFile> _jobImages = [];
 
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -124,13 +125,38 @@ class _PostJobScreenState extends State<PostJobScreen> {
       ),
     );
 
-    if (selection == null || !mounted) {
+    if (!mounted) {
       return;
     }
 
     setState(() {
-      _selectedLocation = selection;
+      if (selection != null) {
+        _selectedLocation = selection;
+      }
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
+  }
+
+  Future<File?> _copyToAppTemp(String sourcePath) async {
+    try {
+      final sourceFile = File(sourcePath);
+      if (!await sourceFile.exists()) {
+        return null;
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final filename =
+          '${DateTime.now().millisecondsSinceEpoch}_${sourceFile.path.split(Platform.pathSeparator).last}';
+      final targetFile = File('${tempDir.path}/$filename');
+
+      return await sourceFile.copy(targetFile.path);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _pickJobImages() async {
@@ -162,18 +188,19 @@ class _PostJobScreenState extends State<PostJobScreen> {
       }
 
       final existingPaths = _jobImages.map((file) => file.path).toSet();
-      final filesToAdd = <File>[];
+      final filesToAdd = <XFile>[];
 
       for (final pickedFile in pickedFiles) {
-        if (existingPaths.contains(pickedFile.path)) {
-          continue;
-        }
         if (filesToAdd.length >= remainingSlots) {
           break;
         }
 
+        if (existingPaths.contains(pickedFile.path)) {
+          continue;
+        }
+
         existingPaths.add(pickedFile.path);
-        filesToAdd.add(File(pickedFile.path));
+        filesToAdd.add(pickedFile);
       }
 
       if (filesToAdd.isEmpty) {
@@ -632,7 +659,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.file(
-              _jobImages[index],
+              File(_jobImages[index].path),
               width: 96,
               height: 96,
               fit: BoxFit.cover,

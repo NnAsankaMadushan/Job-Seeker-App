@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:job_seeker_app/Screens/Login_screen.dart';
 import 'package:job_seeker_app/Screens/home_page.dart';
 import 'package:job_seeker_app/services/cloudinary_service.dart';
@@ -118,6 +119,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  Future<File?> _copyToAppTemp(String sourcePath) async {
+    try {
+      final sourceFile = File(sourcePath);
+      if (!await sourceFile.exists()) {
+        return null;
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final filename =
+          '${DateTime.now().millisecondsSinceEpoch}_${sourceFile.path.split(Platform.pathSeparator).last}';
+      final targetFile = File('${tempDir.path}/$filename');
+
+      return await sourceFile.copy(targetFile.path);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _pickImage() async {
     try {
       final photoPermission = await Permission.photos.request();
@@ -219,10 +238,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: AppGradientBackground(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: AppGradientBackground(
+          child: SafeArea(
+            child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
             child: Form(
               key: _formKey,
               child: Column(
@@ -240,7 +261,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ).animate().fadeIn(duration: 240.ms)
                   else
                     const SizedBox(height: 48),
-                  const SizedBox(height: 8),
+                  // const SizedBox(height: 8),
                   AppPill(
                     label: widget.isProfileSetupOnly
                         ? 'Complete setup'
@@ -437,6 +458,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                               )
                               .toList(),
+                          onTap: () => FocusScope.of(context).unfocus(),
                           onChanged: (value) {
                             setState(() => _selectedGender = value);
                           },
@@ -448,23 +470,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           },
                         ),
                         const SizedBox(height: 14),
-                        GestureDetector(
-                          onTap: _selectDate,
-                          child: AbsorbPointer(
-                            child: TextFormField(
-                              controller: _dateController,
-                              decoration: const InputDecoration(
-                                labelText: 'Date of birth',
-                                prefixIcon: Icon(Icons.calendar_month_outlined),
-                              ),
-                              validator: (value) {
-                                if (_selectedDate == null) {
-                                  return 'Please select your date of birth';
-                                }
-                                return null;
-                              },
-                            ),
+                        TextFormField(
+                          controller: _dateController,
+                          readOnly: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Date of birth',
+                            prefixIcon: Icon(Icons.calendar_month_outlined),
                           ),
+                          onTap: () {
+                            FocusScope.of(context).unfocus();
+                            _selectDate();
+                          },
+                          validator: (value) {
+                            if (_selectedDate == null) {
+                              return 'Please select your date of birth';
+                            }
+                            return null;
+                          },
                         ),
                       ],
                     ),
@@ -542,6 +564,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

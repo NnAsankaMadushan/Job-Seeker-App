@@ -51,8 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AppPill(
-                  label: 'Work chat, redesigned',
-                  icon: Icons.auto_awesome_rounded,
+                  label: 'Job Seeker SL',
                   color: scheme.primary,
                 ).animate().fadeIn(duration: 280.ms).slideY(begin: -0.08),
                 const SizedBox(height: 18),

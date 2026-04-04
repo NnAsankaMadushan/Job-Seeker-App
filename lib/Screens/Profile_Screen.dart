@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:job_seeker_app/Screens/settings_screen.dart';
 import 'package:job_seeker_app/models/applicant_rating_summary.dart';
 import 'package:job_seeker_app/models/user_rating.dart';
@@ -85,6 +86,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _locationController.dispose();
     _dateController.dispose();
     super.dispose();
+  }
+
+  Future<File?> _copyToAppTemp(String sourcePath) async {
+    try {
+      final sourceFile = File(sourcePath);
+      if (!await sourceFile.exists()) {
+        return null;
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final filename =
+          '${DateTime.now().millisecondsSinceEpoch}_${sourceFile.path.split(Platform.pathSeparator).last}';
+      final targetFile = File('${tempDir.path}/$filename');
+
+      return await sourceFile.copy(targetFile.path);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _pickImage() async {

@@ -44,12 +44,18 @@ class _AppLockScreenState extends State<AppLockScreen> {
       return;
     }
 
+    final currentUserDataFuture = authService.getCurrentUserData();
+    final requiresProfileCompletionFuture =
+        authService.requiresProfileCompletion();
+    final appSettings = AppSettingsService.instance;
+    final shouldSkipAppLockOnceFuture = appSettings.shouldSkipAppLockOnce();
+    final appLockEnabledFuture = appSettings.isAppLockEnabled();
+
     try {
-      final currentUserData = await authService.getCurrentUserData();
+      final currentUserData = await currentUserDataFuture;
       if (!mounted) return;
 
-      final requiresProfileCompletion =
-          await authService.requiresProfileCompletion();
+      final requiresProfileCompletion = await requiresProfileCompletionFuture;
 
       if (!mounted) return;
 
@@ -58,8 +64,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
         return;
       }
 
-      final appSettings = AppSettingsService.instance;
-      final shouldSkipAppLockOnce = await appSettings.shouldSkipAppLockOnce();
+      final shouldSkipAppLockOnce = await shouldSkipAppLockOnceFuture;
 
       if (!mounted) return;
 
@@ -69,7 +74,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
         return;
       }
 
-      final appLockEnabled = await appSettings.isAppLockEnabled();
+      final appLockEnabled = await appLockEnabledFuture;
 
       if (!mounted) return;
 

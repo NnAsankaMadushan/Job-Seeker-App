@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:cloudinary_public/cloudinary_public.dart';
+import 'package:path/path.dart' as path;
 
 class CloudinaryService {
   // Cloudinary configuration
@@ -23,14 +24,24 @@ class CloudinaryService {
   /// - message: String
   /// - data: String (image URL) or null
   Future<Map<String, dynamic>> uploadImage(
-    File imageFile, {
+    dynamic imageFile, {
     String folder = 'job_seeker_app',
   }) async {
     try {
-      // Upload the image
+      // Prefer byte upload to avoid stale cache path issues on Android
+      final List<int> imageBytes = await imageFile.readAsBytes();
+      
+      String fileName;
+      try {
+        fileName = imageFile.name;
+      } catch (_) {
+        fileName = path.basename(imageFile.path);
+      }
+
       CloudinaryResponse response = await _cloudinary.uploadFile(
-        CloudinaryFile.fromFile(
-          imageFile.path,
+        CloudinaryFile.fromBytesData(
+          imageBytes,
+          identifier: fileName,
           folder: folder,
           resourceType: CloudinaryResourceType.Image,
         ),
@@ -47,7 +58,9 @@ class CloudinaryService {
       String errorMessage = 'Failed to upload image';
 
       // Provide more helpful error messages
-      if (e.toString().contains('400')) {
+      if (e is FileSystemException) {
+        errorMessage = 'Local image file not found or inaccessible. Please select the image again.';
+      } else if (e.toString().contains('400')) {
         errorMessage = 'Upload preset not configured. Please create an unsigned upload preset named "$_uploadPreset" in your Cloudinary account settings.';
       } else if (e.toString().contains('401')) {
         errorMessage = 'Invalid Cloudinary credentials. Please check your cloud name.';
@@ -95,12 +108,12 @@ class CloudinaryService {
   }
 
   /// Uploads a profile image specifically
-  Future<Map<String, dynamic>> uploadProfileImage(File imageFile) async {
+  Future<Map<String, dynamic>> uploadProfileImage(dynamic imageFile) async {
     return uploadImage(imageFile, folder: 'profiles');
   }
 
   /// Uploads a job-related image
-  Future<Map<String, dynamic>> uploadJobImage(File imageFile) async {
+  Future<Map<String, dynamic>> uploadJobImage(dynamic imageFile) async {
     return uploadImage(imageFile, folder: 'jobs');
   }
 }

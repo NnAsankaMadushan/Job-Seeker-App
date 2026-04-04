@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -15,6 +17,7 @@ class AppSettingsService {
   AppSettingsService._();
 
   static final AppSettingsService instance = AppSettingsService._();
+  static const Duration _readTimeout = Duration(seconds: 3);
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -36,7 +39,11 @@ class AppSettingsService {
         return {};
       }
 
-      final doc = await _firestore.collection('users').doc(uid).get();
+      final doc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get()
+          .timeout(_readTimeout);
       final data = doc.data();
       final settings = data?[_settingsRootKey];
 

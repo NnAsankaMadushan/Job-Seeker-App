@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +9,8 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:job_seeker_app/models/user.dart' as app_user;
 
 class FirebaseAuthService {
+  static const Duration _userDocTimeout = Duration(seconds: 3);
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
@@ -19,15 +23,14 @@ class FirebaseAuthService {
     return _auth.authStateChanges().asyncMap((User? firebaseUser) async {
       if (firebaseUser == null) return null;
 
-      final doc =
-          await _firestore.collection('users').doc(firebaseUser.uid).get();
-      if (doc.exists) {
+      final doc = await _getUserDoc(firebaseUser.uid);
+      if (doc?.exists == true && doc?.data() != null) {
         return app_user.User.fromJson({
-          'id': doc.id,
+          'id': doc!.id,
           ...doc.data()!,
         });
       }
-      return null;
+      return _firebaseUserToAppUser(firebaseUser);
     });
   }
 
@@ -154,24 +157,19 @@ class FirebaseAuthService {
       );
 
       // Get user data from Firestore
-      final doc =
-          await _firestore.collection('users').doc(credential.user!.uid).get();
+      final doc = await _getUserDoc(credential.user!.uid);
 
-      if (!doc.exists) {
-        return {
-          'success': false,
-          'message': 'User data not found',
-        };
-      }
+      final user = (doc?.exists == true && doc?.data() != null)
+          ? app_user.User.fromJson({
+              'id': doc!.id,
+              ...doc.data()!,
+            })
+          : _firebaseUserToAppUser(credential.user!);
 
-      final userData = doc.data()!;
       return {
         'success': true,
         'message': 'Login successful',
-        'user': app_user.User.fromJson({
-          'id': doc.id,
-          ...userData,
-        }),
+        'user': user,
       };
     } on FirebaseAuthException catch (e) {
       return {
@@ -233,27 +231,26 @@ class FirebaseAuthService {
         };
       }
 
-      await _ensureUserDocument(firebaseUser);
-
-      final doc =
-          await _firestore.collection('users').doc(firebaseUser.uid).get();
-      if (!doc.exists) {
-        return {
-          'success': false,
-          'message': 'User data not found after Google sign-in',
-        };
-      }
-
-      final requiresProfileCompletion = await this.requiresProfileCompletion();
+      unawaited(() async {
+        try {
+          await _ensureUserDocument(firebaseUser);
+        } on TimeoutException {
+          debugPrint('Timed out syncing Google sign-in profile.');
+        } on FirebaseException catch (e) {
+          debugPrint(
+            'Firestore unavailable while syncing Google sign-in profile (${e.code}).',
+          );
+        } catch (e) {
+          debugPrint(
+              'Unexpected error while syncing Google sign-in profile: $e');
+        }
+      }());
 
       return {
         'success': true,
         'message': 'Google sign-in successful',
-        'requiresProfileCompletion': requiresProfileCompletion,
-        'user': app_user.User.fromJson({
-          'id': doc.id,
-          ...doc.data()!,
-        }),
+        'requiresProfileCompletion': false,
+        'user': _firebaseUserToAppUser(firebaseUser),
       };
     } on FirebaseAuthException catch (e) {
       return {
@@ -309,28 +306,27 @@ class FirebaseAuthService {
             };
           }
 
-          await _ensureUserDocument(firebaseUser);
-
-          final doc =
-              await _firestore.collection('users').doc(firebaseUser.uid).get();
-          if (!doc.exists) {
-            return {
-              'success': false,
-              'message': 'User data not found after Facebook sign-in',
-            };
-          }
-
-          final requiresProfileCompletion =
-              await this.requiresProfileCompletion();
+          unawaited(() async {
+            try {
+              await _ensureUserDocument(firebaseUser);
+            } on TimeoutException {
+              debugPrint('Timed out syncing Facebook sign-in profile.');
+            } on FirebaseException catch (e) {
+              debugPrint(
+                'Firestore unavailable while syncing Facebook sign-in profile (${e.code}).',
+              );
+            } catch (e) {
+              debugPrint(
+                'Unexpected error while syncing Facebook sign-in profile: $e',
+              );
+            }
+          }());
 
           return {
             'success': true,
             'message': 'Facebook sign-in successful',
-            'requiresProfileCompletion': requiresProfileCompletion,
-            'user': app_user.User.fromJson({
-              'id': doc.id,
-              ...doc.data()!,
-            }),
+            'requiresProfileCompletion': false,
+            'user': _firebaseUserToAppUser(firebaseUser),
           };
         case LoginStatus.cancelled:
           return {
@@ -383,13 +379,13 @@ class FirebaseAuthService {
     if (user == null) return null;
 
     try {
-      final doc = await _firestore.collection('users').doc(user.uid).get();
-      if (!doc.exists) {
+      final doc = await _getUserDoc(user.uid);
+      if (doc == null || !doc.exists || doc.data() == null) {
         return _firebaseUserToAppUser(user);
       }
 
       return app_user.User.fromJson({
-        'id': doc.id,
+        'id': doc!.id,
         ...doc.data()!,
       });
     } on FirebaseException catch (e) {
@@ -409,13 +405,13 @@ class FirebaseAuthService {
     if (uid.isEmpty) return null;
 
     try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      if (!doc.exists) {
+      final doc = await _getUserDoc(uid);
+      if (doc == null || !doc.exists || doc.data() == null) {
         return null;
       }
 
       return app_user.User.fromJson({
-        'id': doc.id,
+        'id': doc!.id,
         ...doc.data()!,
       });
     } on FirebaseException catch (e) {
@@ -473,7 +469,11 @@ class FirebaseAuthService {
     if (user == null) return false;
 
     try {
-      final doc = await _firestore.collection('users').doc(user.uid).get();
+      final doc = await _getUserDoc(user.uid);
+      if (doc == null) {
+        return false;
+      }
+
       if (!doc.exists) {
         return true;
       }
@@ -504,7 +504,7 @@ class FirebaseAuthService {
   // Ensure a Firestore profile exists for OAuth users.
   Future<void> _ensureUserDocument(User firebaseUser) async {
     final userRef = _firestore.collection('users').doc(firebaseUser.uid);
-    final userDoc = await userRef.get();
+    final userDoc = await userRef.get().timeout(_userDocTimeout);
 
     final fallbackName = firebaseUser.displayName?.trim();
     final nameToUse = (fallbackName != null && fallbackName.isNotEmpty)
@@ -559,7 +559,30 @@ class FirebaseAuthService {
     }
 
     if (updates.isNotEmpty) {
-      await userRef.update(updates);
+      await userRef.update(updates).timeout(_userDocTimeout);
+    }
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _getUserDoc(
+      String uid) async {
+    try {
+      return await _firestore
+          .collection('users')
+          .doc(uid)
+          .get()
+          .timeout(_userDocTimeout);
+    } on TimeoutException {
+      debugPrint('Timed out while reading Firestore user document for $uid.');
+      return null;
+    } on FirebaseException catch (e) {
+      debugPrint(
+        'Firestore unavailable while reading Firestore user document for $uid (${e.code}).',
+      );
+      return null;
+    } catch (e) {
+      debugPrint(
+          'Unexpected error while reading Firestore user document for $uid: $e');
+      return null;
     }
   }
 
