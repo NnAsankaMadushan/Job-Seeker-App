@@ -33,6 +33,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -59,6 +60,10 @@ android {
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.debug
         }
+    }
+
+    dependencies {
+        coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
     }
 }
 

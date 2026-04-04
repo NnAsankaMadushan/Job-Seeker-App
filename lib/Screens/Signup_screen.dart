@@ -1,9 +1,12 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:job_seeker_app/Screens/Login_screen.dart';
 import 'package:job_seeker_app/Screens/app_lock_screen.dart';
+import 'package:job_seeker_app/Screens/otp_verification_screen.dart';
 import 'package:job_seeker_app/Screens/register_screen.dart';
 import 'package:job_seeker_app/models/user.dart' as app_user;
+import 'package:job_seeker_app/services/brevo_service.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 
@@ -196,29 +199,60 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  void _handleSignup() {
+  Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     setState(() => _isLoading = true);
 
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (!mounted) {
-        return;
-      }
+    final random = math.Random();
+    final otp = (100000 + random.nextInt(900000)).toString();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
 
-      setState(() => _isLoading = false);
-      Navigator.pushReplacement(
+    final success = await BrevoService.sendOtpEmail(
+      email: email,
+      otp: otp,
+      type: 'Account Registration',
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _isLoading = false);
+    
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Verification code sent to your email.')),
+      );
+
+      Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => RegisterScreen(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
+          builder: (_) => OtpVerificationScreen(
+            email: email,
+            otp: otp,
+            onVerified: (ctx) {
+              Navigator.pushReplacement(
+                ctx,
+                MaterialPageRoute(
+                  builder: (_) => RegisterScreen(
+                    email: email,
+                    password: password,
+                  ),
+                ),
+              );
+            },
           ),
         ),
       );
-    });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to send verification code. Please try again.')),
+      );
+    }
   }
 
   Future<void> _handleGoogleSignIn() async {

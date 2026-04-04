@@ -496,6 +496,7 @@ class AppActionCard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   final String title;
@@ -503,6 +504,7 @@ class AppActionCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -510,29 +512,59 @@ class AppActionCard extends StatelessWidget {
 
     return AppGlassCard(
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          AppDecoratedIcon(
-            icon: icon,
-            color: color,
-            backgroundColor: color.withValues(alpha: 0.14),
-            size: 56,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppDecoratedIcon(
+                icon: icon,
+                color: color,
+                backgroundColor: color.withValues(alpha: 0.14),
+                size: 56,
+              ),
+              const Spacer(),
+              Text(
+                title,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
-          const Spacer(),
-          Text(
-            title,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
+          if (badgeCount > 0)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 26),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.error,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    width: 2,
+                  ),
+                ),
+                child: Text(
+                  badgeCount > 99 ? '99+' : '$badgeCount',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onError,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
         ],
       ),
     );

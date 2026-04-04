@@ -109,14 +109,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       icon: Icons.tune_rounded,
                       color: scheme.primary,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Keep notifications, privacy, and appearance in sync with how you work.',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                    ),
+                    // const SizedBox(height: 16),
+                    // Text(
+                    //   'Keep notifications, privacy, and appearance in sync with how you work.',
+                    //   style:
+                    //       Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    //             fontWeight: FontWeight.w800,
+                    //           ),
+                    // ),
                     // const SizedBox(height: 10),
                     // Text(
                     //   'These settings shape how the app looks, how it protects your account, and how it gets your attention.',

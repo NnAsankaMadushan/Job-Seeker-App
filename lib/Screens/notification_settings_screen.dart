@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:job_seeker_app/services/app_settings_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import 'package:app_settings/app_settings.dart';
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
@@ -15,7 +15,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   bool _isLoading = true;
   bool _isUpdatingPush = false;
-  bool _isOpeningSystemSettings = false;
   bool _pushNotificationsEnabled = true;
   bool _inAppNotificationsEnabled = true;
 
@@ -65,11 +64,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     });
 
     if (enabled && !finalValue) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Notification permission is blocked. Enable it in device settings.'),
-        ),
-      );
+      _showEnableNotificationsDialog();
     }
   }
 
@@ -81,26 +76,30 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     setState(() => _inAppNotificationsEnabled = enabled);
   }
 
-  Future<void> _openSystemNotificationSettings() async {
-    if (_isOpeningSystemSettings) {
-      return;
-    }
-
-    setState(() => _isOpeningSystemSettings = true);
-    final opened = await openAppSettings();
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() => _isOpeningSystemSettings = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          opened
-              ? 'System settings opened'
-              : 'Could not open system settings on this device',
-        ),
+  void _showEnableNotificationsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Enable Notifications'),
+        content: const Text(
+            'To receive push notifications, please enable them in your device settings.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              try {
+                AppSettings.openAppSettings(type: AppSettingsType.notification);
+              } catch (e) {
+                // Ignore errors
+              }
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
       ),
     );
   }
@@ -152,23 +151,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                       title: const Text('In-app notifications'),
                       subtitle: const Text('Show notification badges and inbox updates'),
                     ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: Icon(
-                        Icons.settings_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      title: const Text('Open system notification settings'),
-                      subtitle: const Text('Manage notification permission on your phone'),
-                      trailing: _isOpeningSystemSettings
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.chevron_right),
-                      onTap: _isOpeningSystemSettings ? null : _openSystemNotificationSettings,
-                    ),
+
                   ],
                 ),
               ),

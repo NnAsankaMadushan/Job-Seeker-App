@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:job_seeker_app/Screens/app_lock_screen.dart';
+import 'package:job_seeker_app/Screens/forgot_password_screen.dart';
 import 'package:job_seeker_app/Screens/Signup_screen.dart';
 import 'package:job_seeker_app/Screens/register_screen.dart';
 import 'package:job_seeker_app/models/user.dart' as app_user;
@@ -126,6 +127,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ).animate().fadeIn(delay: 340.ms).slideX(begin: -0.04),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordScreen(),
+                              ),
+                            ),
+                            child: const Text('Forgot Password?'),
+                          ),
+                        ).animate().fadeIn(delay: 380.ms),
                         const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,

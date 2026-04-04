@@ -128,6 +128,7 @@ class _HomeContentState extends State<_HomeContent> {
   app_user.User? _currentUser;
   int _unreadMessageCount = 0;
   int _unreadNotificationCount = 0;
+  int _pendingRequestsCount = 0;
   bool _isLoading = true;
   List<job_model.Job> _recentJobs = [];
 
@@ -136,6 +137,7 @@ class _HomeContentState extends State<_HomeContent> {
     super.initState();
     _loadUserData();
     _loadUnreadCounts();
+    _loadPendingRequestsCount();
     _loadRecentJobs();
   }
 
@@ -189,6 +191,21 @@ class _HomeContentState extends State<_HomeContent> {
     });
   }
 
+  void _loadPendingRequestsCount() {
+    final jobService = FirebaseJobService();
+    jobService.getAllMyJobApplications().listen((applications) {
+      if (mounted) {
+        int count = 0;
+        for (final app in applications) {
+          if (app.isPending()) {
+            count++;
+          }
+        }
+        setState(() => _pendingRequestsCount = count);
+      }
+    });
+  }
+
   void _loadRecentJobs() {
     final jobService = FirebaseJobService();
     jobService.getAvailableJobs().listen((jobs) {
@@ -229,6 +246,7 @@ class _HomeContentState extends State<_HomeContent> {
         subtitle: 'Create a new task and start hiring quickly.',
         icon: Icons.add_task_rounded,
         color: scheme.primary,
+        badgeCount: 0,
         onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PostJobScreen()),
@@ -239,6 +257,7 @@ class _HomeContentState extends State<_HomeContent> {
         subtitle: 'See fresh openings near your preferred location.',
         icon: Icons.travel_explore_rounded,
         color: scheme.secondary,
+        badgeCount: 0,
         onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AvailableDutiesScreen()),
@@ -249,6 +268,7 @@ class _HomeContentState extends State<_HomeContent> {
         subtitle: 'Review active applications and current progress.',
         icon: Icons.assignment_turned_in_rounded,
         color: scheme.tertiary,
+        badgeCount: 0,
         onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const MyJobsScreen()),
@@ -259,6 +279,7 @@ class _HomeContentState extends State<_HomeContent> {
         subtitle: 'Respond to worker requests and incoming updates.',
         icon: Icons.inventory_2_outlined,
         color: const Color(0xFF059669),
+        badgeCount: _pendingRequestsCount,
         onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const WorkerRequestsScreen()),
@@ -299,7 +320,7 @@ class _HomeContentState extends State<_HomeContent> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _greeting,
+                                      "Welcome back,",
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodyMedium
@@ -311,9 +332,9 @@ class _HomeContentState extends State<_HomeContent> {
                                     Text(
                                       _isLoading
                                           ? 'Loading your dashboard'
-                                          : _currentUser?.name ??
+                                          : '$_displayName' ??
                                               'Welcome back',
-                                      maxLines: 1,
+                                      maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: Theme.of(context)
                                           .textTheme
@@ -369,7 +390,7 @@ class _HomeContentState extends State<_HomeContent> {
                           children: [
                             AppPill(
                               label: 'Account',
-                              icon: Icons.auto_awesome_rounded,
+                              // icon: Icons.auto_awesome_rounded,
                               color: scheme.primary,
                             ),
                             if ((_currentUser?.location ?? '').isNotEmpty)
@@ -382,20 +403,20 @@ class _HomeContentState extends State<_HomeContent> {
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          '$_greeting, $_displayName',
+                          '$_greeting, ${_currentUser?.name ?? 'there'}!',
                           style: Theme.of(context)
                               .textTheme
                               .headlineMedium
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Move between conversations, job requests, and active applications from one polished control center.',
-                          style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                        ),
+                        // const SizedBox(height: 12),
+                        // Text(
+                        //   'Move between conversations, job requests, and active applications from one polished control center.',
+                        //   style:
+                        //       Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        //             color: scheme.onSurfaceVariant,
+                        //           ),
+                        // ),
                       ],
                     ),
                   ).animate().fadeIn(delay: 80.ms).slideY(begin: 0.08),
@@ -403,8 +424,8 @@ class _HomeContentState extends State<_HomeContent> {
                   AppSectionHeader(
                     eyebrow: 'Dashboard',
                     title: 'Quick actions',
-                    subtitle:
-                        'Jump into the tasks that keep your work moving today.',
+                    // subtitle:
+                    //     'Jump into the tasks that keep your work moving today.',
                     trailing: TextButton.icon(
                       onPressed: () {
                         Navigator.push(
@@ -437,6 +458,7 @@ class _HomeContentState extends State<_HomeContent> {
                         subtitle: action.subtitle,
                         icon: action.icon,
                         color: action.color,
+                        badgeCount: action.badgeCount,
                         onTap: action.onTap,
                       )
                           .animate()

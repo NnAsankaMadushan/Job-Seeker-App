@@ -51,6 +51,7 @@ app.*.map.json
 /lib/services/firebase_auth_service.dart
 /lib/services/firebase_chat_service.dart
 /lib/services/firebase_job_service.dart
+/lib/services/brevo_service.dart
 android/app/google-services.json
 # Firebase configuration
 android/app/google-services.json

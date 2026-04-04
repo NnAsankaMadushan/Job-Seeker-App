@@ -3,16 +3,26 @@ import 'package:job_seeker_app/Screens/app_lock_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:job_seeker_app/theme/app_theme.dart';
 import 'package:job_seeker_app/theme/theme_controller.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
+import 'package:job_seeker_app/services/push_notification_service.dart';
 import 'firebase_options.dart';
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  await PushNotificationService.instance.init();
   runApp(const MyApp());
 }
 

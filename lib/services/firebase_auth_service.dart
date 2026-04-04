@@ -184,6 +184,27 @@ class FirebaseAuthService {
     }
   }
 
+  // Send password reset email
+  Future<Map<String, dynamic>> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return {
+        'success': true,
+        'message': 'Password reset email sent. Please check your inbox.',
+      };
+    } on FirebaseAuthException catch (e) {
+      return {
+        'success': false,
+        'message': _getFirebaseAuthErrorMessage(e.code),
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'An error occurred: $e',
+      };
+    }
+  }
+
   // Sign in with Google
   Future<Map<String, dynamic>> signInWithGoogle({
     bool forceAccountSelection = false,
