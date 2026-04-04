@@ -8,6 +8,9 @@ import 'package:job_seeker_app/theme/app_theme.dart';
 import 'package:job_seeker_app/theme/theme_controller.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
 import 'package:job_seeker_app/services/push_notification_service.dart';
+import 'package:job_seeker_app/l10n/l10n_controller.dart';
+import 'package:job_seeker_app/l10n/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'firebase_options.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -31,17 +34,34 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemeController.instance.themeMode,
-      builder: (context, themeMode, _) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme(),
-          darkTheme: AppTheme.darkTheme(),
-          themeMode: themeMode,
-          themeAnimationCurve: Curves.easeOutCubic,
-          themeAnimationDuration: const Duration(milliseconds: 420),
-          home: const AuthGate(),
+    return ValueListenableBuilder<Locale>(
+      valueListenable: L10nController.instance.locale,
+      builder: (context, currentLocale, _) {
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: ThemeController.instance.themeMode,
+          builder: (context, themeMode, _) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme(),
+              darkTheme: AppTheme.darkTheme(),
+              themeMode: themeMode,
+              locale: currentLocale,
+              localizationsDelegates: [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('en'),
+                Locale('si'),
+                Locale('ta'),
+              ],
+              themeAnimationCurve: Curves.easeOutCubic,
+              themeAnimationDuration: const Duration(milliseconds: 420),
+              home: const AuthGate(),
+            );
+          },
         );
       },
     );

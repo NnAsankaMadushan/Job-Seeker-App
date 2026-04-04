@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:job_seeker_app/l10n/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:job_seeker_app/Screens/app_lock_screen.dart';
 import 'package:job_seeker_app/Screens/forgot_password_screen.dart';
@@ -59,18 +60,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
-                  children: const [
+                  children: [
                     _FeaturePill(
                       icon: Icons.lock_outline_rounded,
-                      label: 'Secure sign-in',
+                      label: AppLocalizations.of(context)!.secureSignIn,
                     ),
                     _FeaturePill(
                       icon: Icons.flash_on_outlined,
-                      label: 'Fast handoff',
+                      label: AppLocalizations.of(context)!.fastHandoff,
                     ),
                     _FeaturePill(
                       icon: Icons.tips_and_updates_outlined,
-                      label: 'Smart alerts',
+                      label: AppLocalizations.of(context)!.smartAlerts,
                     ),
                   ],
                 ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.06),
@@ -81,27 +82,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const AppSectionHeader(
-                          eyebrow: 'Account',
-                          title: 'Welcome back',
-                          subtitle:
-                              'Use your email and password to reconnect with your work.',
+                        AppSectionHeader(
+                          eyebrow: AppLocalizations.of(context)!.account,
+                          title: AppLocalizations.of(context)!.welcomeBack,
+                          subtitle: AppLocalizations.of(context)!.loginSubtitle,
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
                           controller: _usernameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
+                          decoration: InputDecoration(
+                            labelText: AppLocalizations.of(context)!.email,
                             hintText: 'name@example.com',
-                            prefixIcon: Icon(Icons.alternate_email_rounded),
+                            prefixIcon: const Icon(Icons.alternate_email_rounded),
                           ),
                           keyboardType: TextInputType.emailAddress,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return 'Please enter your email';
+                              return AppLocalizations.of(context)!.emailError;
                             }
                             if (!value.contains('@')) {
-                              return 'Please enter a valid email address';
+                              return AppLocalizations.of(context)!.emailInvalid;
                             }
                             return null;
                           },
@@ -111,17 +111,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Password',
+                          decoration: InputDecoration(
+                            labelText: AppLocalizations.of(context)!.password,
                             hintText: 'Enter your password',
-                            prefixIcon: Icon(Icons.lock_outline_rounded),
+                            prefixIcon: const Icon(Icons.lock_outline_rounded),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter your password';
+                              return AppLocalizations.of(context)!.passwordError;
                             }
                             if (value.length < 8) {
-                              return 'Password must be at least 8 characters long';
+                              return AppLocalizations.of(context)!
+                                  .passwordLengthError;
                             }
                             return null;
                           },
@@ -137,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 builder: (_) => const ForgotPasswordScreen(),
                               ),
                             ),
-                            child: const Text('Forgot Password?'),
+                            child: Text(AppLocalizations.of(context)!.forgotPassword),
                           ),
                         ).animate().fadeIn(delay: 380.ms),
                         const SizedBox(height: 20),
@@ -153,7 +154,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                         strokeWidth: 2),
                                   )
                                 : const Icon(Icons.arrow_forward_rounded),
-                            label: Text(_isLoading ? 'Signing in...' : 'Login'),
+                            label: Text(_isLoading
+                                ? AppLocalizations.of(context)!.signingIn
+                                : AppLocalizations.of(context)!.login),
                           ),
                         ).animate().fadeIn(delay: 420.ms).slideY(begin: 0.06),
                         const SizedBox(height: 10),
@@ -164,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             spacing: 4,
                             children: [
                               Text(
-                                'New here?',
+                                AppLocalizations.of(context)!.newHere,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                               TextButton(
@@ -174,7 +177,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     builder: (_) => const SignupScreen(),
                                   ),
                                 ),
-                                child: const Text('Create an account'),
+                                child: Text(AppLocalizations.of(context)!
+                                    .createAccount),
                               ),
                             ],
                           ),
@@ -218,16 +222,22 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login successful')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.loginSuccessful)),
+        );
+      }
       _navigateToAppLock();
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Login failed: ${result['message']}')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                '${AppLocalizations.of(context)!.loginFailed}: ${result['message']}')),
+      );
+    }
   }
 
   Future<void> _handleGoogleSignIn() async {

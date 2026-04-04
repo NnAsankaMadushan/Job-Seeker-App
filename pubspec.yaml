@@ -45,7 +45,7 @@ dependencies:
   geolocator: ^13.0.2
   geocoding: ^3.0.0
   # Utils
-  intl: ^0.19.0
+  intl: ^0.20.2
   http: ^1.2.2
   url_launcher: ^6.3.2
   google_sign_in: ^6.2.2
@@ -59,6 +59,8 @@ dependencies:
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
   app_settings: ^7.0.0
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
@@ -83,6 +85,7 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:

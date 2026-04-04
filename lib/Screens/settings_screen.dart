@@ -6,6 +6,8 @@ import 'package:job_seeker_app/Screens/notification_settings_screen.dart';
 import 'package:job_seeker_app/Screens/privacy_security_screen.dart';
 import 'package:job_seeker_app/services/firebase_auth_service.dart';
 import 'package:job_seeker_app/widgets/app_ui.dart';
+import 'package:job_seeker_app/l10n/l10n_controller.dart';
+import 'package:job_seeker_app/l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -39,19 +41,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
+        final l10n = AppLocalizations.of(context)!;
         return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text(
-            'Are you sure you want to log out from this workspace?',
-          ),
+          title: Text(l10n.logout),
+          content: Text(l10n.logoutMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Logout'),
+              child: Text(l10n.logout),
             ),
           ],
         );
@@ -82,7 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       setState(() => _isLoggingOut = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to logout: $error')),
+        SnackBar(content: Text('${AppLocalizations.of(context)!.logoutFailed}: $error')),
       );
     }
   }
@@ -93,7 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(AppLocalizations.of(context)!.settings),
       ),
       body: AppGradientBackground(
         child: SafeArea(
@@ -142,13 +143,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   backgroundColor: scheme.primary.withValues(alpha: 0.14),
                 ),
                 title: Text(
-                  'Notifications',
+                  AppLocalizations.of(context)!.notifications,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                 ),
                 subtitle: Text(
-                  'Manage push permission, in-app alerts, and message visibility.',
+                  AppLocalizations.of(context)!.notificationsSubtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -168,13 +169,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   backgroundColor: scheme.secondary.withValues(alpha: 0.14),
                 ),
                 title: Text(
-                  'Privacy & security',
+                  AppLocalizations.of(context)!.privacySecurity,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                 ),
                 subtitle: Text(
-                  'Configure app lock, saved credentials, and permission access.',
+                  AppLocalizations.of(context)!.privacySecuritySubtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -194,13 +195,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   backgroundColor: scheme.tertiary.withValues(alpha: 0.14),
                 ),
                 title: Text(
-                  'Appearance',
+                  AppLocalizations.of(context)!.appearance,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                 ),
                 subtitle: Text(
-                  'Switch between light, dark, or system-driven styling.',
+                  AppLocalizations.of(context)!.appearanceSubtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -211,11 +212,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: scheme.onSurfaceVariant,
                 ),
               ).animate().fadeIn(delay: 320.ms).slideX(begin: 0.05),
+              const SizedBox(height: 12),
+              AppListTileCard(
+                onTap: () => _showLanguagePicker(context),
+                leading: AppDecoratedIcon(
+                  icon: Icons.language_rounded,
+                  color: Colors.blue,
+                  backgroundColor: Colors.blue.withValues(alpha: 0.14),
+                ),
+                title: Text(
+                  AppLocalizations.of(context)!.language,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                subtitle: ValueListenableBuilder<Locale>(
+                  valueListenable: L10nController.instance.locale,
+                  builder: (context, locale, _) {
+                    String langName = 'English';
+                    if (locale.languageCode == 'si') langName = 'සිංහල';
+                    if (locale.languageCode == 'ta') langName = 'தமிழ்';
+                    return Text(
+                      langName,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    );
+                  },
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ).animate().fadeIn(delay: 360.ms).slideX(begin: 0.05),
               const SizedBox(height: 24),
-              const AppSectionHeader(
-                eyebrow: 'Account',
-                title: 'Session controls',
-                subtitle: 'Leave the device cleanly when you are done.',
+              AppSectionHeader(
+                eyebrow: AppLocalizations.of(context)!.account,
+                title: AppLocalizations.of(context)!.sessionControls,
+                subtitle: AppLocalizations.of(context)!.sessionSubtitle,
               ).animate().fadeIn(delay: 360.ms).slideY(begin: 0.08),
               const SizedBox(height: 16),
               AppGlassCard(
@@ -234,7 +269,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Logout',
+                            AppLocalizations.of(context)!.logout,
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
@@ -242,7 +277,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Sign out and require authentication again on next launch.',
+                            AppLocalizations.of(context)!.logoutSubtitle,
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
@@ -272,6 +307,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showLanguagePicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AppGlassCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  l10n.selectLanguage,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              ListTile(
+                title: Text(l10n.english),
+                onTap: () {
+                  L10nController.instance.setLocale(const Locale('en'));
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: Text(l10n.sinhala),
+                onTap: () {
+                  L10nController.instance.setLocale(const Locale('si'));
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: Text(l10n.tamil),
+                onTap: () {
+                  L10nController.instance.setLocale(const Locale('ta'));
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:job_seeker_app/l10n/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:job_seeker_app/Screens/Login_screen.dart';
 import 'package:job_seeker_app/Screens/app_lock_screen.dart';
@@ -77,27 +78,26 @@ class _SignupScreenState extends State<SignupScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const AppSectionHeader(
-                          eyebrow: 'Step 1',
-                          title: 'Create your account',
-                          subtitle:
-                              'Use an email and password you will remember. You can add the rest of your information next.',
+                        AppSectionHeader(
+                          eyebrow: AppLocalizations.of(context)!.step1,
+                          title: AppLocalizations.of(context)!.createAccount,
+                          subtitle: AppLocalizations.of(context)!.signupSubtitle,
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
                           controller: _emailController,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
+                          decoration: InputDecoration(
+                            labelText: AppLocalizations.of(context)!.email,
                             hintText: 'name@example.com',
-                            prefixIcon: Icon(Icons.alternate_email_rounded),
+                            prefixIcon: const Icon(Icons.alternate_email_rounded),
                           ),
                           keyboardType: TextInputType.emailAddress,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return 'Please enter your email';
+                              return AppLocalizations.of(context)!.emailError;
                             }
                             if (!value.contains('@') || !value.contains('.')) {
-                              return 'Please enter a valid email';
+                              return AppLocalizations.of(context)!.emailInvalid;
                             }
                             return null;
                           },
@@ -106,17 +106,17 @@ class _SignupScreenState extends State<SignupScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Password',
+                          decoration: InputDecoration(
+                            labelText: AppLocalizations.of(context)!.password,
                             hintText: 'Create a secure password',
-                            prefixIcon: Icon(Icons.lock_outline_rounded),
+                            prefixIcon: const Icon(Icons.lock_outline_rounded),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter your password';
+                              return AppLocalizations.of(context)!.passwordError;
                             }
-                            if (value.length < 6) {
-                              return 'Password must be at least 6 characters';
+                            if (value.length < 8) {
+                              return AppLocalizations.of(context)!.passwordLengthError;
                             }
                             return null;
                           },
@@ -125,17 +125,17 @@ class _SignupScreenState extends State<SignupScreen> {
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Confirm password',
-                            hintText: 'Repeat your password',
-                            prefixIcon: Icon(Icons.verified_user_outlined),
+                          decoration: InputDecoration(
+                            labelText: AppLocalizations.of(context)!.confirmPassword,
+                            hintText: AppLocalizations.of(context)!.repeatPassword,
+                            prefixIcon: const Icon(Icons.verified_user_outlined),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please confirm your password';
+                              return AppLocalizations.of(context)!.passwordError;
                             }
                             if (value != _passwordController.text) {
-                              return 'Passwords do not match';
+                              return AppLocalizations.of(context)!.passwordsDoNotMatch;
                             }
                             return null;
                           },
@@ -153,8 +153,9 @@ class _SignupScreenState extends State<SignupScreen> {
                                         strokeWidth: 2),
                                   )
                                 : const Icon(Icons.arrow_forward_rounded),
-                            label:
-                                Text(_isLoading ? 'Preparing...' : 'Continue'),
+                             label: Text(_isLoading
+                                ? AppLocalizations.of(context)!.preparing
+                                : AppLocalizations.of(context)!.continueText),
                           ),
                         ).animate().fadeIn(delay: 540.ms).slideY(begin: 0.06),
                         const SizedBox(height: 10),
@@ -165,7 +166,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             spacing: 4,
                             children: [
                               Text(
-                                'Already have an account?',
+                                AppLocalizations.of(context)!.alreadyHaveAccount,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                               TextButton(
@@ -175,7 +176,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                     builder: (_) => const LoginScreen(),
                                   ),
                                 ),
-                                child: const Text('Log in'),
+                                child: Text(AppLocalizations.of(context)!.login),
                               ),
                             ],
                           ),
@@ -224,9 +225,11 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = false);
     
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verification code sent to your email.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.verificationSent)),
+        );
+      }
 
       Navigator.push(
         context,
@@ -249,9 +252,12 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send verification code. Please try again.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(AppLocalizations.of(context)!.verificationFailed)),
+        );
+      }
     }
   }
 
