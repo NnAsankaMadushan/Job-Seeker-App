@@ -50,6 +50,7 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                       ),
                       const SizedBox(height: 14),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(5, (index) {
                           final starValue = index + 1;
@@ -61,6 +62,11 @@ class _WorkerRequestsScreenState extends State<WorkerRequestsScreen> {
                                 selectedRating = starValue;
                               });
                             },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 40,
+                            ),
                             icon: Icon(
                               isSelected
                                   ? Icons.star_rounded
