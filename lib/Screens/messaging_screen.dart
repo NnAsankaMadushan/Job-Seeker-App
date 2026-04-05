@@ -94,6 +94,9 @@ class _MessagingScreenState extends State<MessagingScreen>
       final chatService = FirebaseChatService();
       await _messagesSubscription?.cancel();
 
+      // Ensure the conversation document exists before listening for messages.
+      await chatService.ensureConversationExists(widget.userId);
+
       // Listen to messages stream
       _messagesSubscription = chatService.getMessages(widget.userId).listen(
         (messages) {
@@ -397,8 +400,9 @@ class _MessagingScreenState extends State<MessagingScreen>
                             child: AppEmptyState(
                               icon: Icons.cloud_off_outlined,
                               title: 'Unable to load chat',
-                              subtitle:
-                                  'Firestore is offline or the conversation is not reachable right now.',
+                              subtitle: _loadError?.contains('permission-denied') == true
+                                  ? 'Permission denied by Firestore rules. Check your chat access.'
+                                  : 'Firestore is offline or the conversation is not reachable right now.',
                               action: ElevatedButton.icon(
                                 onPressed: _loadMessages,
                                 icon: const Icon(Icons.refresh_rounded),
